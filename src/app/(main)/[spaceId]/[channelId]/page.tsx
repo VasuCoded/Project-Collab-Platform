@@ -1,10 +1,10 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Chat } from "@/components/chat";
+import { Whiteboard } from "@/components/whiteboard";
 
 const placeholder: Record<string, { label: string; note: string }> = {
   voice_video: { label: "Voice / Video", note: "Calls are coming later." },
-  whiteboard: { label: "Whiteboard", note: "Shared canvas is coming later." },
   todo: { label: "Tasks", note: "Task board is coming later." },
   notes: { label: "Notes", note: "Shared notes are coming later." },
   reminders: { label: "Reminders", note: "Reminders are coming later." },
@@ -22,9 +22,13 @@ export default async function ChannelPage({ params }: { params: Promise<{ spaceI
   const { data: channel } = await supabase.from("channels").select("id, name, type").eq("id", channelId).single();
   if (!channel) notFound();
 
-  if (channel.type === "text" && user) {
+  if ((channel.type === "text" || channel.type === "whiteboard") && user) {
     const { data: profile } = await supabase.from("profiles").select("display_name").eq("id", user.id).single();
-    return <Chat channelId={channel.id} channelName={channel.name} me={user.id} meName={profile?.display_name ?? "You"} />;
+    const meName = profile?.display_name ?? "You";
+    if (channel.type === "whiteboard") {
+      return <Whiteboard channelId={channel.id} channelName={channel.name} me={user.id} meName={meName} />;
+    }
+    return <Chat channelId={channel.id} channelName={channel.name} me={user.id} meName={meName} />;
   }
 
   const p = placeholder[channel.type] ?? { label: channel.name, note: "Coming later." };
