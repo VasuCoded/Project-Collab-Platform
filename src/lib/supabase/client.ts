@@ -1,9 +1,5 @@
 import { createBrowserClient } from '@supabase/ssr'
 
-/**
- * Supabase client for use in Client Components / the browser.
- * Uses the current @supabase/ssr pattern (not the deprecated auth-helpers package).
- */
 export function createClient() {
   return createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

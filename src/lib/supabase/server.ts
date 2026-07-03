@@ -1,11 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
-/**
- * Supabase client for Server Components, Server Actions, and Route Handlers.
- * Uses the current @supabase/ssr cookie pattern. `cookies()` is async in this
- * Next.js version, so this factory is async — always `await createClient()`.
- */
 export async function createClient() {
   const cookieStore = await cookies()
 
@@ -23,8 +18,7 @@ export async function createClient() {
               cookieStore.set(name, value, options),
             )
           } catch {
-            // `setAll` was called from a Server Component. Safe to ignore when
-            // middleware is refreshing the session (added with auth).
+            // no-op in server components
           }
         },
       },

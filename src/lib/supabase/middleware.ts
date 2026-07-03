@@ -1,11 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-/**
- * Refreshes the Supabase session on every request and gates access.
- * Uses the @supabase/ssr session-refresh pattern (not a hand-rolled cookie check).
- * Public paths: /login and /auth/* (the OAuth callback). Everything else needs a user.
- */
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
 
@@ -28,18 +23,24 @@ export async function updateSession(request: NextRequest) {
     },
   )
 
-  // IMPORTANT: getUser() must run — it refreshes the token. Do no logic between
-  // createServerClient and getUser, or you risk random logouts.
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
   const path = request.nextUrl.pathname
-  const isPublic = path.startsWith('/login') || path.startsWith('/auth')
+  const code = request.nextUrl.searchParams.get('code')
 
+  if (code && !user && !path.startsWith('/auth')) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/auth/callback'
+    return NextResponse.redirect(url)
+  }
+
+  const isPublic = path.startsWith('/login') || path.startsWith('/auth')
   if (!user && !isPublic) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
+    url.search = ''
     return NextResponse.redirect(url)
   }
 

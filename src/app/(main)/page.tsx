@@ -1,8 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { signOut } from '@/app/auth/actions'
 
-// Placeholder home for the authenticated app. The real shell (server rail,
-// channels, chat) arrives later — this just proves auth works.
 export default async function Home() {
   const supabase = await createClient()
   const {

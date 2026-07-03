@@ -1,6 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
 
-// Always render fresh — this is a live connectivity check, never cached.
 export const dynamic = 'force-dynamic'
 
 export default async function HealthPage() {
@@ -11,20 +10,14 @@ export default async function HealthPage() {
   let message = ''
 
   if (!url || !key) {
-    message =
-      'Missing NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY. Fill them into .env.local.'
+    message = 'Missing NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY. Fill them into .env.local.'
   } else {
     try {
       const supabase = await createClient()
-      // No tables exist yet (the schema is added later). We ping PostgREST
-      // with a throwaway table name. Any structured response back — even a
-      // "table not found" (42P01 / PGRST205) — proves the URL + anon key reached
-      // Supabase. Only a thrown error (network) or a rejected key = not connected.
       const { error } = await supabase.from('__healthcheck__').select('*').limit(1)
       const authRejected =
         error != null &&
-        (error.code === 'PGRST301' ||
-          /api key|jwt|unauthor|invalid.*key/i.test(error.message))
+        (error.code === 'PGRST301' || /api key|jwt|unauthor|invalid.*key/i.test(error.message))
       if (authRejected) {
         message = 'Reached Supabase, but the anon key was rejected — double-check the key.'
       } else {
