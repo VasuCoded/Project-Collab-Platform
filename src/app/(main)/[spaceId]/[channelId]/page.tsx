@@ -10,7 +10,6 @@ import { RemindersChannel } from "@/components/reminders-channel";
 
 const placeholder: Record<string, { label: string; note: string }> = {
   voice_video: { label: "Voice / Video", note: "Calls are coming later." },
-  cubicle: { label: "Cubicle", note: "Personal workspace is coming later." },
 };
 
 export default async function ChannelPage({ params }: { params: Promise<{ spaceId: string; channelId: string }> }) {
@@ -23,7 +22,8 @@ export default async function ChannelPage({ params }: { params: Promise<{ spaceI
   ]);
   if (!channel) notFound();
 
-  if ((channel.type === "text" || channel.type === "whiteboard" || channel.type === "todo") && user) {
+  // text, cubicle (private personal log), whiteboard and todo all need the profile.
+  if ((channel.type === "text" || channel.type === "cubicle" || channel.type === "whiteboard" || channel.type === "todo") && user) {
     const profile = await getProfile(user.id); // cache hit: shared with the main layout
     const meName = profile?.display_name ?? "You";
     if (channel.type === "whiteboard") {
