@@ -2,9 +2,10 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { signOut } from '@/app/auth/actions'
 import { createServer } from '@/app/(main)/actions'
+import { createClient } from '@/lib/supabase/client'
 
 type Space = { id: string; type: string; name: string | null }
 type Dm = { id: string; type: string; name: string | null; avatar: string | null; unread: number; lastAt: string | null }
@@ -44,17 +45,39 @@ export function Rail({
   dms,
   privateSpace,
   profile,
+  me,
 }: {
   servers: Space[]
   dms: Dm[]
   privateSpace: Space | null
   profile: Profile
+  me: string
 }) {
   const pathname = usePathname()
   const router = useRouter()
+  const supabase = useMemo(() => createClient(), [])
   const activeSpaceId = pathname.split('/')[1]
   const [busy, setBusy] = useState(false)
   const [dmOpen, setDmOpen] = useState(false)
+
+  // Keep unread badges live: when a message from someone else lands in any
+  // channel we can see, re-run the server layout (debounced) so the rail + desk
+  // recompute unread without a manual navigation.
+  const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  useEffect(() => {
+    const ch = supabase
+      .channel('rail:unread')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
+        if ((payload.new as { author_id?: string }).author_id === me) return
+        if (refreshTimer.current) clearTimeout(refreshTimer.current)
+        refreshTimer.current = setTimeout(() => router.refresh(), 800)
+      })
+      .subscribe()
+    return () => {
+      if (refreshTimer.current) clearTimeout(refreshTimer.current)
+      supabase.removeChannel(ch)
+    }
+  }, [supabase, me, router])
 
   // A DM is "active" when the user is currently inside one of the dm spaces.
   const inDm = dms.some((d) => d.id === activeSpaceId)

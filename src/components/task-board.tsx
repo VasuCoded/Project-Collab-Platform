@@ -70,6 +70,8 @@ export function TaskBoard({ spaceId, channelId, channelName, me }: { spaceId: st
   }, [spaceId, supabase]);
 
   useEffect(() => {
+    // Initial fetch on mount / channel change — legitimate data-loading effect.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
   }, [load]);
 

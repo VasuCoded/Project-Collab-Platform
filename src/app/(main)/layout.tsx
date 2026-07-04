@@ -38,7 +38,7 @@ export default async function MainLayout({ children }: { children: ReactNode }) 
 
   return (
     <div style={{ display: 'flex', height: '100dvh', overflow: 'hidden' }}>
-      <Rail servers={servers} dms={dms} privateSpace={privateSpace} profile={profile} />
+      <Rail servers={servers} dms={dms} privateSpace={privateSpace} profile={profile} me={user.id} />
       <div style={{ flex: 1, minWidth: 0, display: 'flex' }}>{children}</div>
     </div>
   )
