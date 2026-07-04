@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { signOut } from '@/app/auth/actions'
 import { createServer } from '@/app/(main)/actions'
 import { createClient } from '@/lib/supabase/client'
@@ -60,28 +60,42 @@ export function Rail({
   const [busy, setBusy] = useState(false)
   const [dmOpen, setDmOpen] = useState(false)
 
-  // Keep unread badges live: when a message from someone else lands in any
-  // channel we can see, re-run the server layout (debounced) so the rail + desk
-  // recompute unread without a manual navigation.
+  // DM unread lives in local state so it can update live (below) without
+  // re-rendering the whole app. Reset when the server sends fresh data.
+  const [dmList, setDmList] = useState<Dm[]>(dms)
+  // Re-sync when the server sends a fresh dms list (navigation adds a new DM, etc.).
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => setDmList(dms), [dms])
+
+  // A DM is "active" when the user is currently inside one of the dm spaces.
+  const inDm = dmList.some((d) => d.id === activeSpaceId)
+  const totalUnread = dmList.reduce((n, d) => n + (d.unread || 0), 0)
+
+  // Keep unread badges live: when a message from someone else lands, re-pull the
+  // per-space unread counts (one cheap RPC) instead of re-running the server layout.
   const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const refreshUnread = useCallback(async () => {
+    const { data, error } = await supabase.rpc('unread_summary')
+    if (error) return
+    const map = new Map<string, number>()
+    for (const r of (data ?? []) as { space_id: string; unread: number }[]) map.set(r.space_id, Number(r.unread) || 0)
+    setDmList((prev) => prev.map((d) => ({ ...d, unread: map.get(d.id) ?? 0 })))
+  }, [supabase])
+
   useEffect(() => {
     const ch = supabase
       .channel('rail:unread')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
         if ((payload.new as { author_id?: string }).author_id === me) return
         if (refreshTimer.current) clearTimeout(refreshTimer.current)
-        refreshTimer.current = setTimeout(() => router.refresh(), 800)
+        refreshTimer.current = setTimeout(refreshUnread, 800)
       })
       .subscribe()
     return () => {
       if (refreshTimer.current) clearTimeout(refreshTimer.current)
       supabase.removeChannel(ch)
     }
-  }, [supabase, me, router])
-
-  // A DM is "active" when the user is currently inside one of the dm spaces.
-  const inDm = dms.some((d) => d.id === activeSpaceId)
-  const totalUnread = dms.reduce((n, d) => n + (d.unread || 0), 0)
+  }, [supabase, me, refreshUnread])
 
   async function onCreate() {
     const name = window.prompt('New server name')
@@ -98,6 +112,7 @@ export function Rail({
 
   function openDm(id: string) {
     setDmOpen(false)
+    setDmList((prev) => prev.map((d) => (d.id === id ? { ...d, unread: 0 } : d))) // clear its badge on open
     router.push(`/${id}`)
   }
 
@@ -249,8 +264,8 @@ export function Rail({
               </button>
             </div>
             <div style={{ flex: 1, overflowY: 'auto', padding: 8 }}>
-              {dms.length === 0 && <div style={{ color: '#666', fontSize: 13, padding: '20px 12px', textAlign: 'center' }}>No conversations yet.</div>}
-              {dms.map((d) => {
+              {dmList.length === 0 && <div style={{ color: '#666', fontSize: 13, padding: '20px 12px', textAlign: 'center' }}>No conversations yet.</div>}
+              {dmList.map((d) => {
                 const active = d.id === activeSpaceId
                 const label = d.name ?? 'Direct message'
                 return (

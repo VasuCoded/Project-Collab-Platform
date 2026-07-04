@@ -2,7 +2,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { startDm } from "@/app/(main)/actions";
 
 export type Member = {
   user_id: string;
@@ -26,10 +28,25 @@ export function Members({
   initialMembers: Member[];
 }) {
   const supabase = useMemo(() => createClient(), []);
+  const router = useRouter();
   const [members, setMembers] = useState<Member[]>(initialMembers);
   const [invite, setInvite] = useState("");
   const [busy, setBusy] = useState(false);
+  const [dmBusy, setDmBusy] = useState<string | null>(null);
   const canManage = myRole === "owner" || myRole === "admin";
+
+  async function message(userId: string) {
+    if (dmBusy) return;
+    setDmBusy(userId);
+    try {
+      const id = await startDm(userId);
+      router.push(`/${id}`);
+      router.refresh(); // pull the new DM into the rail's server-rendered list
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Could not open DM");
+      setDmBusy(null);
+    }
+  }
 
   async function genInvite() {
     setBusy(true);
@@ -90,6 +107,11 @@ export function Members({
                 {label || "Member"}
                 {isSelf && <span style={{ color: "#666" }}> (you)</span>}
               </span>
+              {!isSelf && (
+                <button onClick={() => message(m.user_id)} disabled={dmBusy === m.user_id} style={{ background: "#232338", color: "#c7c9ff", border: "none", borderRadius: 6, padding: "4px 12px", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>
+                  {dmBusy === m.user_id ? "…" : "message"}
+                </button>
+              )}
               {editable ? (
                 <select value={m.role} onChange={(e) => changeRole(m.user_id, e.target.value)} style={{ background: "#141414", color: "#ddd", border: "1px solid #333", borderRadius: 6, padding: "4px 8px" }}>
                   {ASSIGNABLE.map((r) => (
