@@ -36,9 +36,16 @@ export default async function MainLayout({ children }: { children: ReactNode }) 
     }))
     .sort((a, b) => (b.lastAt ?? '').localeCompare(a.lastAt ?? ''))
 
+  // Unread-per-space for both server dots and DM badges in the rail.
+  const unreadMap: Record<string, number> = {}
+  for (const s of all) {
+    const n = unread.get(s.id)?.unread ?? 0
+    if (n > 0) unreadMap[s.id] = n
+  }
+
   return (
     <div style={{ display: 'flex', height: '100dvh', overflow: 'hidden' }}>
-      <Rail servers={servers} dms={dms} privateSpace={privateSpace} profile={profile} me={user.id} />
+      <Rail servers={servers} dms={dms} unread={unreadMap} privateSpace={privateSpace} profile={profile} me={user.id} />
       <div style={{ flex: 1, minWidth: 0, display: 'flex' }}>{children}</div>
     </div>
   )

@@ -43,12 +43,14 @@ function DmGlyph() {
 export function Rail({
   servers,
   dms,
+  unread,
   privateSpace,
   profile,
   me,
 }: {
   servers: Space[]
   dms: Dm[]
+  unread: Record<string, number>
   privateSpace: Space | null
   profile: Profile
   me: string
@@ -60,26 +62,26 @@ export function Rail({
   const [busy, setBusy] = useState(false)
   const [dmOpen, setDmOpen] = useState(false)
 
-  // DM unread lives in local state so it can update live (below) without
-  // re-rendering the whole app. Reset when the server sends fresh data.
-  const [dmList, setDmList] = useState<Dm[]>(dms)
-  // Re-sync when the server sends a fresh dms list (navigation adds a new DM, etc.).
+  // One unread-per-space map covers both server dots and DM badges. Held in state
+  // so it can update live (below) without re-rendering the whole app; re-synced
+  // when the server sends fresh data (navigation).
+  const [unreadMap, setUnreadMap] = useState<Record<string, number>>(unread)
   // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => setDmList(dms), [dms])
+  useEffect(() => setUnreadMap(unread), [unread])
 
   // A DM is "active" when the user is currently inside one of the dm spaces.
-  const inDm = dmList.some((d) => d.id === activeSpaceId)
-  const totalUnread = dmList.reduce((n, d) => n + (d.unread || 0), 0)
+  const inDm = dms.some((d) => d.id === activeSpaceId)
+  const totalUnread = dms.reduce((n, d) => n + (unreadMap[d.id] || 0), 0)
 
-  // Keep unread badges live: when a message from someone else lands, re-pull the
-  // per-space unread counts (one cheap RPC) instead of re-running the server layout.
+  // Keep unread live: when a message from someone else lands, re-pull the
+  // per-space counts (one cheap RPC) instead of re-running the server layout.
   const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const refreshUnread = useCallback(async () => {
     const { data, error } = await supabase.rpc('unread_summary')
     if (error) return
-    const map = new Map<string, number>()
-    for (const r of (data ?? []) as { space_id: string; unread: number }[]) map.set(r.space_id, Number(r.unread) || 0)
-    setDmList((prev) => prev.map((d) => ({ ...d, unread: map.get(d.id) ?? 0 })))
+    const next: Record<string, number> = {}
+    for (const r of (data ?? []) as { space_id: string; unread: number }[]) next[r.space_id] = Number(r.unread) || 0
+    setUnreadMap(next)
   }, [supabase])
 
   useEffect(() => {
@@ -112,7 +114,7 @@ export function Rail({
 
   function openDm(id: string) {
     setDmOpen(false)
-    setDmList((prev) => prev.map((d) => (d.id === id ? { ...d, unread: 0 } : d))) // clear its badge on open
+    setUnreadMap((prev) => ({ ...prev, [id]: 0 })) // clear its badge on open
     router.push(`/${id}`)
   }
 
@@ -136,9 +138,13 @@ export function Rail({
 
   function serverIcon(space: Space) {
     const active = space.id === activeSpaceId
+    const hasUnread = !active && (unreadMap[space.id] || 0) > 0
     return (
-      <Link key={space.id} href={`/${space.id}`} title={space.name ?? 'Server'} style={railItem(active)}>
+      <Link key={space.id} href={`/${space.id}`} title={space.name ?? 'Server'} style={railItem(active, { position: 'relative' })}>
         {initials(space.name ?? 'Server')}
+        {hasUnread && (
+          <span aria-hidden style={{ position: 'absolute', left: -3, top: '50%', marginTop: -5, width: 10, height: 10, borderRadius: '50%', background: '#fff', border: '2px solid #0f0f0f' }} />
+        )}
       </Link>
     )
   }
@@ -264,10 +270,11 @@ export function Rail({
               </button>
             </div>
             <div style={{ flex: 1, overflowY: 'auto', padding: 8 }}>
-              {dmList.length === 0 && <div style={{ color: '#666', fontSize: 13, padding: '20px 12px', textAlign: 'center' }}>No conversations yet.</div>}
-              {dmList.map((d) => {
+              {dms.length === 0 && <div style={{ color: '#666', fontSize: 13, padding: '20px 12px', textAlign: 'center' }}>No conversations yet.</div>}
+              {dms.map((d) => {
                 const active = d.id === activeSpaceId
                 const label = d.name ?? 'Direct message'
+                const unreadN = unreadMap[d.id] || 0
                 return (
                   <button
                     key={d.id}
@@ -308,10 +315,10 @@ export function Rail({
                         {initials(label)}
                       </span>
                     )}
-                    <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: d.unread > 0 ? 700 : 500, color: d.unread > 0 ? '#fff' : '#ededed', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
-                    {d.unread > 0 && (
+                    <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: unreadN > 0 ? 700 : 500, color: unreadN > 0 ? '#fff' : '#ededed', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
+                    {unreadN > 0 && (
                       <span style={{ minWidth: 18, height: 18, padding: '0 5px', borderRadius: 9, background: '#4f46e5', color: '#fff', fontSize: 11, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        {d.unread > 99 ? '99+' : d.unread}
+                        {unreadN > 99 ? '99+' : unreadN}
                       </span>
                     )}
                   </button>
