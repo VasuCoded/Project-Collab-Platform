@@ -5,11 +5,11 @@ import { Chat } from "@/components/chat";
 import { Whiteboard } from "@/components/whiteboard";
 import { TaskBoard } from "@/components/task-board";
 import { DocsChannel } from "@/components/docs-channel";
+import { NotesChannel } from "@/components/notes-channel";
+import { RemindersChannel } from "@/components/reminders-channel";
 
 const placeholder: Record<string, { label: string; note: string }> = {
   voice_video: { label: "Voice / Video", note: "Calls are coming later." },
-  notes: { label: "Notes", note: "Shared notes are coming later." },
-  reminders: { label: "Reminders", note: "Reminders are coming later." },
   cubicle: { label: "Cubicle", note: "Personal workspace is coming later." },
 };
 
@@ -33,6 +33,14 @@ export default async function ChannelPage({ params }: { params: Promise<{ spaceI
       return <TaskBoard spaceId={spaceId} channelId={channel.id} channelName={channel.name} me={user.id} />;
     }
     return <Chat channelId={channel.id} channelName={channel.name} me={user.id} meName={meName} />;
+  }
+
+  if (channel.type === "notes" && user) {
+    return <NotesChannel channelId={channel.id} channelName={channel.name} me={user.id} />;
+  }
+
+  if (channel.type === "reminders" && user) {
+    return <RemindersChannel channelId={channel.id} channelName={channel.name} me={user.id} />;
   }
 
   if (channel.type === "docs_sheet" && user) {
