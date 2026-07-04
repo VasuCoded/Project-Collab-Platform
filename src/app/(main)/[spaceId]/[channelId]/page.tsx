@@ -1,15 +1,15 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentUser, getProfile } from "@/lib/supabase/queries";
+import { getCurrentUser, getProfile, getMyRole } from "@/lib/supabase/queries";
 import { Chat } from "@/components/chat";
 import { Whiteboard } from "@/components/whiteboard";
 import { TaskBoard } from "@/components/task-board";
+import { DocsChannel } from "@/components/docs-channel";
 
 const placeholder: Record<string, { label: string; note: string }> = {
   voice_video: { label: "Voice / Video", note: "Calls are coming later." },
   notes: { label: "Notes", note: "Shared notes are coming later." },
   reminders: { label: "Reminders", note: "Reminders are coming later." },
-  docs_sheet: { label: "Shared Docs", note: "Embedded docs are coming later." },
   cubicle: { label: "Cubicle", note: "Personal workspace is coming later." },
 };
 
@@ -19,7 +19,7 @@ export default async function ChannelPage({ params }: { params: Promise<{ spaceI
 
   const [user, { data: channel }] = await Promise.all([
     getCurrentUser(), // cache hit: already resolved in the main layout this request
-    supabase.from("channels").select("id, name, type").eq("id", channelId).single(),
+    supabase.from("channels").select("id, name, type, embed_url").eq("id", channelId).single(),
   ]);
   if (!channel) notFound();
 
@@ -33,6 +33,12 @@ export default async function ChannelPage({ params }: { params: Promise<{ spaceI
       return <TaskBoard spaceId={spaceId} channelId={channel.id} channelName={channel.name} me={user.id} />;
     }
     return <Chat channelId={channel.id} channelName={channel.name} me={user.id} meName={meName} />;
+  }
+
+  if (channel.type === "docs_sheet" && user) {
+    const role = await getMyRole(spaceId, user.id);
+    const canManage = role === "owner" || role === "admin";
+    return <DocsChannel channelId={channel.id} channelName={channel.name} embedUrl={channel.embed_url} canManage={canManage} />;
   }
 
   const p = placeholder[channel.type] ?? { label: channel.name, note: "Coming later." };
