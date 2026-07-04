@@ -3,10 +3,10 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser, getProfile } from "@/lib/supabase/queries";
 import { Chat } from "@/components/chat";
 import { Whiteboard } from "@/components/whiteboard";
+import { TaskBoard } from "@/components/task-board";
 
 const placeholder: Record<string, { label: string; note: string }> = {
   voice_video: { label: "Voice / Video", note: "Calls are coming later." },
-  todo: { label: "Tasks", note: "Task board is coming later." },
   notes: { label: "Notes", note: "Shared notes are coming later." },
   reminders: { label: "Reminders", note: "Reminders are coming later." },
   docs_sheet: { label: "Shared Docs", note: "Embedded docs are coming later." },
@@ -14,7 +14,7 @@ const placeholder: Record<string, { label: string; note: string }> = {
 };
 
 export default async function ChannelPage({ params }: { params: Promise<{ spaceId: string; channelId: string }> }) {
-  const { channelId } = await params;
+  const { spaceId, channelId } = await params;
   const supabase = await createClient();
 
   const [user, { data: channel }] = await Promise.all([
@@ -23,11 +23,14 @@ export default async function ChannelPage({ params }: { params: Promise<{ spaceI
   ]);
   if (!channel) notFound();
 
-  if ((channel.type === "text" || channel.type === "whiteboard") && user) {
+  if ((channel.type === "text" || channel.type === "whiteboard" || channel.type === "todo") && user) {
     const profile = await getProfile(user.id); // cache hit: shared with the main layout
     const meName = profile?.display_name ?? "You";
     if (channel.type === "whiteboard") {
       return <Whiteboard channelId={channel.id} channelName={channel.name} me={user.id} meName={meName} />;
+    }
+    if (channel.type === "todo") {
+      return <TaskBoard spaceId={spaceId} channelId={channel.id} channelName={channel.name} me={user.id} />;
     }
     return <Chat channelId={channel.id} channelName={channel.name} me={user.id} meName={meName} />;
   }
