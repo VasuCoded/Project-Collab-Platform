@@ -33,6 +33,7 @@ export function Chat({ channelId, channelName, me, meName, dm = false }: { chann
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [here, setHere] = useState(1);
   const [typers, setTypers] = useState<string[]>([]);
+  const [hoverMsg, setHoverMsg] = useState<string | null>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const chRef = useRef<RealtimeChannel | null>(null);
@@ -121,6 +122,13 @@ export function Chat({ channelId, channelName, me, meName, dm = false }: { chann
       window.setTimeout(() => setTypers((prev) => prev.filter((x) => x !== n)), 3000);
     });
 
+    // A peer deleted one of their messages — drop it live. (Broadcast rather than
+    // a DELETE postgres_changes so it works without REPLICA IDENTITY FULL.)
+    ch.on("broadcast", { event: "msgdelete" }, ({ payload }) => {
+      const id = payload?.id as string | undefined;
+      if (id) setMessages((prev) => prev.filter((m) => m.id !== id));
+    });
+
     ch.subscribe((status) => {
       if (status === "SUBSCRIBED") ch.track({ at: Date.now() });
     });
@@ -180,6 +188,18 @@ export function Chat({ channelId, channelName, me, meName, dm = false }: { chann
     setFile(null);
   }
 
+  async function deleteMessage(id: string) {
+    const before = messages;
+    setMessages((prev) => prev.filter((m) => m.id !== id)); // optimistic
+    const { error } = await supabase.from("messages").delete().eq("id", id);
+    if (error) {
+      setMessages(before); // roll back
+      alert(error.message);
+      return;
+    }
+    chRef.current?.send({ type: "broadcast", event: "msgdelete", payload: { id } });
+  }
+
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", height: "100%", minWidth: 0, fontFamily: "system-ui, sans-serif" }}>
       <div style={{ padding: "12px 20px", borderBottom: "1px solid #262626", display: "flex", alignItems: "baseline", gap: 12 }}>
@@ -195,7 +215,12 @@ export function Chat({ channelId, channelName, me, meName, dm = false }: { chann
         )}
         {messages.length === 0 && <div style={{ color: "#666", textAlign: "center", marginTop: 40 }}>No messages yet. Say hi 👋</div>}
         {messages.map((m) => (
-          <div key={m.id} style={{ display: "flex", gap: 10, padding: "6px 0", alignItems: "flex-start" }}>
+          <div
+            key={m.id}
+            onMouseEnter={() => setHoverMsg(m.id)}
+            onMouseLeave={() => setHoverMsg((h) => (h === m.id ? null : h))}
+            style={{ display: "flex", gap: 10, padding: "6px 0", alignItems: "flex-start" }}
+          >
             {m.author?.avatar_url ? (
               <img src={m.author.avatar_url} alt="" style={{ width: 34, height: 34, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
             ) : (
@@ -211,6 +236,11 @@ export function Chat({ channelId, channelName, me, meName, dm = false }: { chann
               {m.content && <div style={{ color: "#ddd", fontSize: 14, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{m.content}</div>}
               {m.image_url && <img src={m.image_url} alt="" style={{ maxWidth: 320, maxHeight: 320, borderRadius: 8, marginTop: 4, display: "block" }} />}
             </div>
+            {m.author_id === me && hoverMsg === m.id && (
+              <button onClick={() => deleteMessage(m.id)} title="Delete message" style={{ background: "none", border: "none", color: "#666", cursor: "pointer", fontSize: 13, flexShrink: 0, alignSelf: "flex-start", padding: "2px 4px" }}>
+                🗑
+              </button>
+            )}
           </div>
         ))}
       </div>
