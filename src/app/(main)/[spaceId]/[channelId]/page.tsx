@@ -7,10 +7,9 @@ import { TaskBoard } from "@/components/task-board";
 import { DocsChannel } from "@/components/docs-channel";
 import { NotesChannel } from "@/components/notes-channel";
 import { RemindersChannel } from "@/components/reminders-channel";
+import { VoiceChannel } from "@/components/voice-channel";
 
-const placeholder: Record<string, { label: string; note: string }> = {
-  voice_video: { label: "Voice / Video", note: "Calls are coming later." },
-};
+const placeholder: Record<string, { label: string; note: string }> = {};
 
 export default async function ChannelPage({ params }: { params: Promise<{ spaceId: string; channelId: string }> }) {
   const { spaceId, channelId } = await params;
@@ -47,6 +46,11 @@ export default async function ChannelPage({ params }: { params: Promise<{ spaceI
 
   if (channel.type === "reminders" && user) {
     return <RemindersChannel channelId={channel.id} channelName={channel.name} me={user.id} />;
+  }
+
+  if (channel.type === "voice_video" && user) {
+    const profile = await getProfile(user.id);
+    return <VoiceChannel channelId={channel.id} channelName={channel.name} me={user.id} meName={profile?.display_name ?? "You"} />;
   }
 
   if (channel.type === "docs_sheet" && user) {
