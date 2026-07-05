@@ -34,12 +34,14 @@ export function ChannelColumn({
   spaceId,
   channels,
   canInvite,
+  canManage,
   isServer,
 }: {
   spaceName: string
   spaceId: string
   channels: Channel[]
   canInvite: boolean
+  canManage: boolean
   isServer: boolean
 }) {
   const pathname = usePathname()
@@ -160,7 +162,7 @@ export function ChannelColumn({
         {channels.length === 0 && <div style={{ color: '#666', fontSize: 13, padding: 8 }}>No channels yet</div>}
         {channels.map((c) => {
           const active = c.id === activeChannelId
-          const canDelete = canInvite && c.type !== 'cubicle'
+          const canDelete = canManage && c.type !== 'cubicle'
           return (
             <div
               key={c.id}
@@ -204,7 +206,7 @@ export function ChannelColumn({
           )
         })}
 
-        {canInvite && (
+        {canManage && (
           <div style={{ marginTop: 6 }}>
             {adding ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '8px 6px', background: '#151515', borderRadius: 8 }}>

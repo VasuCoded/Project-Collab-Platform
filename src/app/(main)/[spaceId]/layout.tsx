@@ -31,10 +31,13 @@ export default async function SpaceLayout({
     space.name ?? dmName ?? (space.type === 'private' ? 'Private' : space.type === 'dm' ? 'Direct message' : 'Server')
   // invite + member management only make sense in a server.
   const canInvite = space.type === 'server' && (role === 'owner' || role === 'admin')
+  // channel add/delete: server admins, or you in your own private space.
+  const canManage =
+    (space.type === 'server' && (role === 'owner' || role === 'admin')) || (space.type === 'private' && role === 'owner')
 
   return (
     <div style={{ display: 'flex', flex: 1, minWidth: 0, height: '100%' }}>
-      <ChannelColumn spaceName={spaceName} spaceId={spaceId} channels={channels} canInvite={canInvite} isServer={space.type === 'server'} />
+      <ChannelColumn spaceName={spaceName} spaceId={spaceId} channels={channels} canInvite={canInvite} canManage={canManage} isServer={space.type === 'server'} />
       <div style={{ flex: 1, minWidth: 0, display: 'flex' }}>{children}</div>
     </div>
   )

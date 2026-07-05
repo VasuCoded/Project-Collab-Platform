@@ -11,6 +11,7 @@ type Msg = {
   content: string;
   image_url: string | null;
   created_at: string;
+  edited_at: string | null;
   author_id: string;
   author: Author | null;
 };
@@ -34,6 +35,8 @@ export function Chat({ channelId, channelName, me, meName, dm = false }: { chann
   const [here, setHere] = useState(1);
   const [typers, setTypers] = useState<string[]>([]);
   const [hoverMsg, setHoverMsg] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editText, setEditText] = useState("");
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const chRef = useRef<RealtimeChannel | null>(null);
@@ -50,14 +53,14 @@ export function Chat({ channelId, channelName, me, meName, dm = false }: { chann
   // Plain, robust batch fetch — no PostgREST embeds. Resolves authors + reactions separately.
   const fetchBatch = useCallback(
     async (beforeIso?: string): Promise<Msg[]> => {
-      let q = supabase.from("messages").select("id, content, image_url, created_at, author_id").eq("channel_id", channelId);
+      let q = supabase.from("messages").select("id, content, image_url, created_at, edited_at, author_id").eq("channel_id", channelId);
       if (beforeIso) q = q.lt("created_at", beforeIso);
       const { data: msgs, error } = await q.order("created_at", { ascending: false }).limit(50);
       if (error) {
         console.error("[chat] messages fetch failed", error.message);
         return [];
       }
-      const rows = ((msgs ?? []) as { id: string; content: string; image_url: string | null; created_at: string; author_id: string }[]).slice().reverse();
+      const rows = ((msgs ?? []) as { id: string; content: string; image_url: string | null; created_at: string; edited_at: string | null; author_id: string }[]).slice().reverse();
       if (rows.length === 0) return [];
 
       const needAuthors = [...new Set(rows.map((r) => r.author_id))].filter((id) => !cache.current.has(id));
@@ -101,7 +104,7 @@ export function Chat({ channelId, channelName, me, meName, dm = false }: { chann
     chRef.current = ch;
 
     ch.on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `channel_id=eq.${channelId}` }, async (payload) => {
-      const row = payload.new as { id: string; content: string; image_url: string | null; created_at: string; author_id: string };
+      const row = payload.new as { id: string; content: string; image_url: string | null; created_at: string; edited_at: string | null; author_id: string };
       let author = cache.current.get(row.author_id) ?? null;
       if (!author) {
         const { data } = await supabase.from("profiles").select("display_name, avatar_url").eq("id", row.author_id).single();
@@ -127,6 +130,12 @@ export function Chat({ channelId, channelName, me, meName, dm = false }: { chann
     ch.on("broadcast", { event: "msgdelete" }, ({ payload }) => {
       const id = payload?.id as string | undefined;
       if (id) setMessages((prev) => prev.filter((m) => m.id !== id));
+    });
+
+    // A peer edited one of their messages — update it live.
+    ch.on("broadcast", { event: "msgedit" }, ({ payload }) => {
+      const { id, content, edited_at } = (payload ?? {}) as { id?: string; content?: string; edited_at?: string };
+      if (id) setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, content: content ?? m.content, edited_at: edited_at ?? m.edited_at } : m)));
     });
 
     ch.subscribe((status) => {
@@ -200,6 +209,30 @@ export function Chat({ channelId, channelName, me, meName, dm = false }: { chann
     chRef.current?.send({ type: "broadcast", event: "msgdelete", payload: { id } });
   }
 
+  function startEdit(m: Msg) {
+    setEditingId(m.id);
+    setEditText(m.content);
+  }
+
+  async function saveEdit(id: string) {
+    const content = editText.trim();
+    const original = messages.find((m) => m.id === id);
+    if (!original || !content || content === original.content) {
+      setEditingId(null);
+      return;
+    }
+    const edited_at = new Date().toISOString();
+    setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, content, edited_at } : m))); // optimistic
+    setEditingId(null);
+    const { error } = await supabase.from("messages").update({ content, edited_at }).eq("id", id);
+    if (error) {
+      setMessages((prev) => prev.map((m) => (m.id === id ? original : m))); // roll back
+      alert(error.message);
+      return;
+    }
+    chRef.current?.send({ type: "broadcast", event: "msgedit", payload: { id, content, edited_at } });
+  }
+
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", height: "100%", minWidth: 0, fontFamily: "system-ui, sans-serif" }}>
       <div style={{ padding: "12px 20px", borderBottom: "1px solid #262626", display: "flex", alignItems: "baseline", gap: 12 }}>
@@ -233,13 +266,52 @@ export function Chat({ channelId, channelName, me, meName, dm = false }: { chann
                 <b style={{ color: "#fff", fontSize: 14 }}>{m.author?.display_name ?? "Someone"}</b>
                 <span style={{ color: "#666", fontSize: 11 }}>{timeOf(m.created_at)}</span>
               </div>
-              {m.content && <div style={{ color: "#ddd", fontSize: 14, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{m.content}</div>}
-              {m.image_url && <img src={m.image_url} alt="" style={{ maxWidth: 320, maxHeight: 320, borderRadius: 8, marginTop: 4, display: "block" }} />}
+              {editingId === m.id ? (
+                <div style={{ marginTop: 2 }}>
+                  <textarea
+                    autoFocus
+                    value={editText}
+                    onChange={(e) => setEditText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        saveEdit(m.id);
+                      } else if (e.key === "Escape") {
+                        setEditingId(null);
+                      }
+                    }}
+                    rows={2}
+                    style={{ width: "100%", background: "#141414", border: "1px solid #4f46e5", borderRadius: 8, padding: "6px 10px", color: "#ededed", fontSize: 14, resize: "vertical", fontFamily: "inherit" }}
+                  />
+                  <div style={{ display: "flex", gap: 8, marginTop: 4, fontSize: 12, color: "#777" }}>
+                    <button onClick={() => saveEdit(m.id)} style={{ background: "#4f46e5", color: "#fff", border: "none", borderRadius: 6, padding: "3px 10px", cursor: "pointer", fontSize: 12 }}>Save</button>
+                    <button onClick={() => setEditingId(null)} style={{ background: "none", border: "none", color: "#888", cursor: "pointer", fontSize: 12 }}>cancel</button>
+                    <span>Enter to save · Esc to cancel</span>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {m.content && (
+                    <div style={{ color: "#ddd", fontSize: 14, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                      {m.content}
+                      {m.edited_at && <span style={{ color: "#666", fontSize: 11, marginLeft: 6 }}>(edited)</span>}
+                    </div>
+                  )}
+                  {m.image_url && <img src={m.image_url} alt="" style={{ maxWidth: 320, maxHeight: 320, borderRadius: 8, marginTop: 4, display: "block" }} />}
+                </>
+              )}
             </div>
-            {m.author_id === me && hoverMsg === m.id && (
-              <button onClick={() => deleteMessage(m.id)} title="Delete message" style={{ background: "none", border: "none", color: "#666", cursor: "pointer", fontSize: 13, flexShrink: 0, alignSelf: "flex-start", padding: "2px 4px" }}>
-                🗑
-              </button>
+            {m.author_id === me && hoverMsg === m.id && editingId !== m.id && (
+              <div style={{ display: "flex", gap: 2, flexShrink: 0, alignSelf: "flex-start" }}>
+                {m.content && (
+                  <button onClick={() => startEdit(m)} title="Edit message" style={{ background: "none", border: "none", color: "#666", cursor: "pointer", fontSize: 12, padding: "2px 4px" }}>
+                    ✎
+                  </button>
+                )}
+                <button onClick={() => deleteMessage(m.id)} title="Delete message" style={{ background: "none", border: "none", color: "#666", cursor: "pointer", fontSize: 13, padding: "2px 4px" }}>
+                  🗑
+                </button>
+              </div>
             )}
           </div>
         ))}
@@ -259,7 +331,7 @@ export function Chat({ channelId, channelName, me, meName, dm = false }: { chann
       )}
 
       <form onSubmit={send} style={{ display: "flex", gap: 8, padding: "12px 20px", borderTop: "1px solid #262626", alignItems: "center" }}>
-        <input value={text} onChange={(e) => onType(e.target.value)} placeholder={`Message #${channelName}`} style={{ flex: 1, background: "#141414", border: "1px solid #333", borderRadius: 8, padding: "9px 12px", color: "#ededed", fontSize: 14 }} />
+        <input value={text} onChange={(e) => onType(e.target.value)} placeholder={dm ? `Message ${channelName}` : `Message #${channelName}`} style={{ flex: 1, background: "#141414", border: "1px solid #333", borderRadius: 8, padding: "9px 12px", color: "#ededed", fontSize: 14 }} />
         <label style={{ color: "#888", cursor: "pointer", fontSize: 20 }} title="attach image">
           📎
           <input type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] ?? null)} style={{ display: "none" }} />

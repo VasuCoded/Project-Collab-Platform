@@ -11,7 +11,23 @@ import { createClient } from "@/lib/supabase/client";
 
 type Peer = { id: string; name: string; stream: MediaStream | null };
 
-const ICE: RTCConfiguration = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
+// Public STUN handles most home networks. A TURN server (relay) is needed for
+// peers behind strict/symmetric NATs (different networks, some mobile). Provide
+// one via env and it's used automatically — otherwise we run STUN-only.
+function iceServers(): RTCIceServer[] {
+  const servers: RTCIceServer[] = [{ urls: "stun:stun.l.google.com:19302" }];
+  const turn = process.env.NEXT_PUBLIC_TURN_URL;
+  if (turn) {
+    servers.push({
+      urls: turn.split(",").map((s) => s.trim()).filter(Boolean),
+      username: process.env.NEXT_PUBLIC_TURN_USERNAME,
+      credential: process.env.NEXT_PUBLIC_TURN_CREDENTIAL,
+    });
+  }
+  return servers;
+}
+
+const ICE: RTCConfiguration = { iceServers: iceServers() };
 
 function initials(name: string) {
   return (name || "?").trim().slice(0, 2).toUpperCase() || "?";
