@@ -65,9 +65,11 @@ export function Rail({
   // "New message" picker: people you share a space with, so you can start a DM
   // straight from the panel instead of hunting through a server's member list.
   const [picking, setPicking] = useState(false)
-  const [people, setPeople] = useState<{ id: string; name: string; avatar: string | null }[] | null>(null)
+  const [people, setPeople] = useState<{ id: string; name: string; username: string | null; avatar: string | null }[] | null>(null)
   const [pickQuery, setPickQuery] = useState('')
   const [startingDm, setStartingDm] = useState(false)
+  const [handleQuery, setHandleQuery] = useState('')
+  const [handleErr, setHandleErr] = useState<string | null>(null)
 
   const loadPeople = useCallback(async () => {
     const { data: rows } = await supabase.from('space_members').select('user_id').neq('user_id', me)
@@ -76,13 +78,38 @@ export function Rail({
       setPeople([])
       return
     }
-    const { data: profs } = await supabase.from('profiles').select('id, display_name, avatar_url').in('id', ids)
-    setPeople((profs ?? []).map((p) => ({ id: p.id, name: p.display_name ?? 'Member', avatar: p.avatar_url })).sort((a, b) => a.name.localeCompare(b.name)))
+    const { data: profs } = await supabase.from('profiles').select('id, display_name, username, avatar_url').in('id', ids)
+    setPeople((profs ?? []).map((p) => ({ id: p.id, name: p.display_name ?? 'Member', username: p.username, avatar: p.avatar_url })).sort((a, b) => a.name.localeCompare(b.name)))
   }, [supabase, me])
+
+  // Look up any user by their exact @username and DM them — works even if you
+  // don't share a space (profiles are readable to all signed-in users).
+  async function dmByUsername() {
+    const handle = handleQuery.trim().toLowerCase().replace(/^@/, '')
+    if (!handle || startingDm) return
+    setHandleErr(null)
+    const { data, error } = await supabase.from('profiles').select('id').eq('username', handle).maybeSingle()
+    if (error) {
+      setHandleErr(error.message)
+      return
+    }
+    if (!data) {
+      setHandleErr(`No one with @${handle}`)
+      return
+    }
+    if (data.id === me) {
+      setHandleErr("That's you.")
+      return
+    }
+    setHandleQuery('')
+    beginDm(data.id)
+  }
 
   function openPicker() {
     setPicking(true)
     setPickQuery('')
+    setHandleQuery('')
+    setHandleErr(null)
     if (!people) loadPeople()
   }
 
@@ -322,17 +349,40 @@ export function Rail({
 
             {picking ? (
               <div style={{ flex: 1, overflowY: 'auto', padding: 8, display: 'flex', flexDirection: 'column' }}>
+                {/* Add by exact @username — reaches anyone, not just shared-space people. */}
+                <div style={{ margin: '4px 4px 6px' }}>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', background: '#0f0f0f', border: '1px solid #333', borderRadius: 8, paddingLeft: 10 }}>
+                      <span style={{ color: '#666', fontSize: 13 }}>@</span>
+                      <input
+                        autoFocus
+                        value={handleQuery}
+                        onChange={(e) => { setHandleQuery(e.target.value.replace(/^@/, '')); setHandleErr(null) }}
+                        onKeyDown={(e) => e.key === 'Enter' && dmByUsername()}
+                        placeholder="username"
+                        style={{ flex: 1, minWidth: 0, background: 'transparent', border: 'none', outline: 'none', padding: '8px 6px', color: '#ededed', fontSize: 13 }}
+                      />
+                    </div>
+                    <button onClick={dmByUsername} disabled={startingDm || !handleQuery.trim()} style={{ background: '#4f46e5', color: '#fff', border: 'none', borderRadius: 8, padding: '0 14px', cursor: 'pointer', fontSize: 13, opacity: startingDm || !handleQuery.trim() ? 0.6 : 1 }}>
+                      Message
+                    </button>
+                  </div>
+                  {handleErr && <div style={{ color: '#f87171', fontSize: 12, marginTop: 4, paddingLeft: 2 }}>{handleErr}</div>}
+                </div>
+                <div style={{ fontSize: 11, color: '#666', textTransform: 'uppercase', letterSpacing: '0.06em', padding: '6px 6px 4px' }}>People in your teams</div>
                 <input
-                  autoFocus
                   value={pickQuery}
                   onChange={(e) => setPickQuery(e.target.value)}
                   placeholder="Search people…"
-                  style={{ background: '#0f0f0f', border: '1px solid #333', borderRadius: 8, padding: '8px 10px', color: '#ededed', fontSize: 13, margin: '4px 4px 8px' }}
+                  style={{ background: '#0f0f0f', border: '1px solid #333', borderRadius: 8, padding: '8px 10px', color: '#ededed', fontSize: 13, margin: '0 4px 8px' }}
                 />
                 {people === null && <div style={{ color: '#666', fontSize: 13, padding: '12px', textAlign: 'center' }}>loading…</div>}
                 {people?.length === 0 && <div style={{ color: '#666', fontSize: 13, padding: '12px', textAlign: 'center' }}>No one to message yet. Join or create a team first.</div>}
                 {people
-                  ?.filter((p) => p.name.toLowerCase().includes(pickQuery.trim().toLowerCase()))
+                  ?.filter((p) => {
+                    const q = pickQuery.trim().toLowerCase()
+                    return !q || p.name.toLowerCase().includes(q) || (p.username ?? '').includes(q)
+                  })
                   .map((p) => (
                     <button
                       key={p.id}
@@ -346,7 +396,10 @@ export function Rail({
                       ) : (
                         <span style={{ width: 32, height: 32, borderRadius: '50%', background: '#333', color: '#ccc', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 600, flexShrink: 0 }}>{initials(p.name)}</span>
                       )}
-                      <span style={{ fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
+                      <span style={{ minWidth: 0 }}>
+                        <span style={{ display: 'block', fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
+                        {p.username && <span style={{ display: 'block', fontSize: 11, color: '#777', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>@{p.username}</span>}
+                      </span>
                     </button>
                   ))}
               </div>

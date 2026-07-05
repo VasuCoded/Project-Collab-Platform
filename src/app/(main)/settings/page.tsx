@@ -8,7 +8,7 @@ export default async function SettingsPage() {
   if (!user) redirect("/login");
 
   const supabase = await createClient();
-  const { data: profile } = await supabase.from("profiles").select("display_name, avatar_url, status_line").eq("id", user.id).single();
+  const { data: profile } = await supabase.from("profiles").select("username, display_name, avatar_url, status_line").eq("id", user.id).single();
 
-  return <ProfileSettings userId={user.id} initial={profile ?? { display_name: null, avatar_url: null, status_line: null }} />;
+  return <ProfileSettings userId={user.id} initial={profile ?? { username: null, display_name: null, avatar_url: null, status_line: null }} />;
 }

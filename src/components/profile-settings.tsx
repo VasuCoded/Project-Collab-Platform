@@ -5,7 +5,9 @@ import { useMemo, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
-type Profile = { display_name: string | null; avatar_url: string | null; status_line: string | null };
+type Profile = { username: string | null; display_name: string | null; avatar_url: string | null; status_line: string | null };
+
+const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
 
 function initials(name: string) {
   return (name || "?").trim().slice(0, 2).toUpperCase() || "?";
@@ -14,6 +16,7 @@ function initials(name: string) {
 export function ProfileSettings({ userId, initial }: { userId: string; initial: Profile }) {
   const supabase = useMemo(() => createClient(), []);
   const router = useRouter();
+  const [username, setUsername] = useState(initial.username ?? "");
   const [name, setName] = useState(initial.display_name ?? "");
   const [status, setStatus] = useState(initial.status_line ?? "");
   const [file, setFile] = useState<File | null>(null);
@@ -32,6 +35,10 @@ export function ProfileSettings({ userId, initial }: { userId: string; initial: 
       setMsg({ ok: false, text: "Display name can't be empty." });
       return;
     }
+    if (!USERNAME_RE.test(username)) {
+      setMsg({ ok: false, text: "Username must be 3–20 chars: lowercase letters, numbers, underscore." });
+      return;
+    }
     setBusy(true);
     setMsg(null);
 
@@ -47,10 +54,11 @@ export function ProfileSettings({ userId, initial }: { userId: string; initial: 
       avatar_url = supabase.storage.from("avatars").getPublicUrl(path).data.publicUrl;
     }
 
-    const { error } = await supabase.from("profiles").update({ display_name: name.trim(), status_line: status.trim() || null, avatar_url }).eq("id", userId);
+    const { error } = await supabase.from("profiles").update({ username, display_name: name.trim(), status_line: status.trim() || null, avatar_url }).eq("id", userId);
     setBusy(false);
     if (error) {
-      setMsg({ ok: false, text: error.message });
+      const taken = error.code === "23505" || /duplicate|unique/i.test(error.message);
+      setMsg({ ok: false, text: taken ? "That username is taken." : error.message });
       return;
     }
     setFile(null);
@@ -77,6 +85,21 @@ export function ProfileSettings({ userId, initial }: { userId: string; initial: 
               <input type="file" accept="image/*" onChange={(e) => pickFile(e.target.files?.[0] ?? null)} style={{ display: "none" }} />
             </label>
           </div>
+
+          <label style={{ display: "block" }}>
+            <span style={{ display: "block", fontSize: 13, color: "#888", marginBottom: 6 }}>Username</span>
+            <div style={{ display: "flex", alignItems: "center", background: "#141414", border: "1px solid #333", borderRadius: 8, paddingLeft: 12 }}>
+              <span style={{ color: "#666", fontSize: 14 }}>@</span>
+              <input
+                value={username}
+                onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))}
+                maxLength={20}
+                placeholder="handle"
+                style={{ ...field, background: "transparent", border: "none", paddingLeft: 4 }}
+              />
+            </div>
+            <span style={{ display: "block", fontSize: 11, color: "#666", marginTop: 4 }}>Lowercase letters, numbers, underscore. People can DM you by this.</span>
+          </label>
 
           <label style={{ display: "block" }}>
             <span style={{ display: "block", fontSize: 13, color: "#888", marginBottom: 6 }}>Display name</span>
