@@ -219,33 +219,35 @@ export function Rail({
             gap: 4,
           }}
         >
-          {profile.avatar_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={profile.avatar_url} alt="" style={{ width: 34, height: 34, borderRadius: '50%', objectFit: 'cover' }} />
-          ) : (
+          <Link href="/settings" title="Profile settings" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, textDecoration: 'none' }}>
+            {profile.avatar_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={profile.avatar_url} alt="" style={{ width: 34, height: 34, borderRadius: '50%', objectFit: 'cover' }} />
+            ) : (
+              <div
+                style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: '50%',
+                  background: pathname === '/settings' ? '#6366f1' : '#4f46e5',
+                  color: '#fff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 12,
+                  fontWeight: 600,
+                }}
+              >
+                {initials(profile.display_name)}
+              </div>
+            )}
             <div
-              style={{
-                width: 34,
-                height: 34,
-                borderRadius: '50%',
-                background: '#4f46e5',
-                color: '#fff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 12,
-                fontWeight: 600,
-              }}
+              style={{ fontSize: 10, color: pathname === '/settings' ? '#c7c9ff' : '#aaa', maxWidth: 64, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+              title={profile.display_name ?? ''}
             >
-              {initials(profile.display_name)}
+              {profile.display_name}
             </div>
-          )}
-          <div
-            style={{ fontSize: 10, color: '#aaa', maxWidth: 64, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-            title={profile.display_name ?? ''}
-          >
-            {profile.display_name}
-          </div>
+          </Link>
           <form action={signOut}>
             <button style={{ background: 'none', border: 'none', color: '#777', cursor: 'pointer', fontSize: 10 }}>Log out</button>
           </form>

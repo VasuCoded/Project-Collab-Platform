@@ -9,7 +9,7 @@ import { startDm } from "@/app/(main)/actions";
 export type Member = {
   user_id: string;
   role: string;
-  profiles: { display_name: string | null; avatar_url: string | null } | null;
+  profiles: { display_name: string | null; avatar_url: string | null; status_line: string | null } | null;
 };
 
 const ASSIGNABLE = ["member", "moderator", "admin"];
@@ -103,9 +103,14 @@ export function Members({
                   {label.slice(0, 2).toUpperCase() || "?"}
                 </div>
               )}
-              <span style={{ flex: 1, color: "#fff" }}>
-                {label || "Member"}
-                {isSelf && <span style={{ color: "#666" }}> (you)</span>}
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ color: "#fff", display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {label || "Member"}
+                  {isSelf && <span style={{ color: "#666" }}> (you)</span>}
+                </span>
+                {m.profiles?.status_line && (
+                  <span style={{ color: "#777", fontSize: 12, display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.profiles.status_line}</span>
+                )}
               </span>
               {!isSelf && (
                 <button onClick={() => message(m.user_id)} disabled={dmBusy === m.user_id} style={{ background: "#232338", color: "#c7c9ff", border: "none", borderRadius: 6, padding: "4px 12px", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>

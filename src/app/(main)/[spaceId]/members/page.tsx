@@ -16,7 +16,7 @@ export default async function MembersPage({ params }: { params: Promise<{ spaceI
 
   const { data: members } = await supabase
     .from("space_members")
-    .select("user_id, role, profiles(display_name, avatar_url)")
+    .select("user_id, role, profiles(display_name, avatar_url, status_line)")
     .eq("space_id", spaceId);
 
   const list = (members ?? []) as unknown as Member[];
