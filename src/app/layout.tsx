@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 })
 
 const title = 'Collab Platform'
-const description = 'A shared workspace for small teams — chat, tasks, notes, and files in one place.'
+const description = 'One place for a small team to chat, track tasks, keep notes, and share files.'
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://collabproject-vasu.vercel.app'),

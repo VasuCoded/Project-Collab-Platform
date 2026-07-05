@@ -27,7 +27,7 @@ export default function Image() {
           A workspace for small teams.
         </div>
         <div style={{ fontSize: 38, color: '#a8a8a8', marginTop: 28 }}>
-          Chat, tasks, notes and files — in one place.
+          Chat, tasks, notes, and files in one place.
         </div>
       </div>
     ),
