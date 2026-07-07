@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser, getProfile, getMyRole, getSpace, getDmPeers } from "@/lib/supabase/queries";
 import { Chat } from "@/components/chat";
+import { CubicleChannel } from "@/components/cubicle-channel";
 import { Whiteboard } from "@/components/whiteboard";
 import { TaskBoard } from "@/components/task-board";
 import { DocsChannel } from "@/components/docs-channel";
@@ -17,11 +18,11 @@ export default async function ChannelPage({ params }: { params: Promise<{ spaceI
 
   const [user, { data: channel }] = await Promise.all([
     getCurrentUser(), // cache hit: already resolved in the main layout this request
-    supabase.from("channels").select("id, name, type, embed_url").eq("id", channelId).single(),
+    supabase.from("channels").select("id, name, type, embed_url, owner_id").eq("id", channelId).single(),
   ]);
   if (!channel) notFound();
 
-  // text, cubicle (private personal log), whiteboard and todo all need the profile.
+  // text, cubicle, whiteboard and todo all need the profile.
   if ((channel.type === "text" || channel.type === "cubicle" || channel.type === "whiteboard" || channel.type === "todo") && user) {
     const profile = await getProfile(user.id); // cache hit: shared with the main layout
     const meName = profile?.display_name ?? "You";
@@ -30,6 +31,15 @@ export default async function ChannelPage({ params }: { params: Promise<{ spaceI
     }
     if (channel.type === "todo") {
       return <TaskBoard spaceId={spaceId} channelId={channel.id} channelName={channel.name} me={user.id} />;
+    }
+    if (channel.type === "cubicle") {
+      const isOwner = channel.owner_id === user.id;
+      let ownerName = meName;
+      if (channel.owner_id && !isOwner) {
+        const op = await getProfile(channel.owner_id);
+        ownerName = op?.display_name ?? "Member";
+      }
+      return <CubicleChannel channelId={channel.id} channelName={channel.name} ownerName={ownerName} isOwner={isOwner} me={user.id} meName={meName} />;
     }
     // In a DM, title the chat with the other person (no "#") rather than "# direct".
     const space = await getSpace(spaceId); // cache hit: shared with the space layout

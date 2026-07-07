@@ -178,6 +178,7 @@ export function Rail({
     setDmOpen(false)
     setUnreadMap((prev) => ({ ...prev, [id]: 0 }))
     router.push(`/${id}`)
+    router.refresh()
   }
 
   const getRailItemStyle = (active: boolean, isPlus = false): React.CSSProperties => ({

@@ -25,7 +25,7 @@ function timeOf(iso: string) {
   }
 }
 
-export function Chat({ channelId, channelName, me, meName, dm = false }: { channelId: string; channelName: string; me: string; meName: string; dm?: boolean }) {
+export function Chat({ channelId, channelName, me, meName, dm = false, compact = false }: { channelId: string; channelName: string; me: string; meName: string; dm?: boolean; compact?: boolean }) {
   const supabase = useMemo(() => createClient(), []);
   const ui = useUI();
   const [messages, setMessages] = useState<Msg[]>([]);
@@ -91,8 +91,6 @@ export function Chat({ channelId, channelName, me, meName, dm = false }: { chann
     };
   }, [fetchBatch]);
 
-  // Mark this channel read whenever we open it. Ignored gracefully if the
-  // mark_channel_read RPC isn't deployed yet (unread just won't clear).
   const markRead = useCallback(() => {
     void supabase.rpc("mark_channel_read", { p_channel_id: channelId });
   }, [channelId, supabase]);
@@ -237,12 +235,14 @@ export function Chat({ channelId, channelName, me, meName, dm = false }: { chann
 
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", height: "100%", minWidth: 0, fontFamily: "var(--font-sans)", transition: "background-color 0.15s ease" }}>
-      <div style={{ padding: "12px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "baseline", gap: 12 }}>
-        <span style={{ fontWeight: 700, color: "var(--foreground)" }}>{dm ? channelName : `# ${channelName}`}</span>
-        <span style={{ fontSize: 12, color: "var(--muted)" }}>{here} here</span>
-      </div>
+      {!compact && (
+        <div style={{ padding: "12px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "baseline", gap: 12 }}>
+          <span style={{ fontWeight: 700, color: "var(--foreground)" }}>{dm ? channelName : `# ${channelName}`}</span>
+          <span style={{ fontSize: 12, color: "var(--muted)" }}>{here} here</span>
+        </div>
+      )}
 
-      <div ref={scrollRef} style={{ flex: 1, overflowY: "auto", padding: "12px 20px" }}>
+      <div ref={scrollRef} style={{ flex: 1, overflowY: "auto", padding: compact ? "10px 14px" : "12px 20px" }}>
         {hasMore && (
           <button onClick={loadOlder} disabled={loadingOlder} style={{ display: "block", margin: "0 auto 12px", background: "var(--card)", border: "1px solid var(--border)", color: "var(--muted)", borderRadius: 6, padding: "4px 12px", cursor: "pointer", fontSize: 12, transition: "all 0.15s ease" }}>
             {loadingOlder ? "loading…" : "load older"}
