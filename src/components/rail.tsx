@@ -9,6 +9,7 @@ import { createClient } from '@/lib/supabase/client'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { useUI } from '@/components/ui-provider'
 import { Badge } from '@/components/badge'
+import { ContextMenu, type MenuItem } from '@/components/context-menu'
 
 type Space = { id: string; type: string; name: string | null }
 type Dm = { id: string; type: string; name: string | null; avatar: string | null; unread: number; lastAt: string | null }
@@ -181,6 +182,34 @@ export function Rail({
     router.refresh()
   }
 
+  const [serverMenu, setServerMenu] = useState<{ x: number; y: number; space: Space } | null>(null)
+
+  async function copyInvite(spaceId: string) {
+    const { data, error } = await supabase.rpc('generate_invite', { p_space_id: spaceId })
+    if (error) { ui.alert(error.message, 'Error'); return }
+    navigator.clipboard?.writeText(`${window.location.origin}/join/${data}`)
+    ui.toast('Invite link copied.', 'success')
+  }
+
+  async function leaveServer(spaceId: string) {
+    const ok = await ui.confirm('Leave this team? You can rejoin with a new invite.', 'Leave team')
+    if (!ok) return
+    const { error } = await supabase.rpc('leave_space', { p_space_id: spaceId })
+    if (error) { ui.alert(error.message, 'Error'); return }
+    ui.toast('Left the team.', 'success')
+    if (spaceId === activeSpaceId) window.location.href = '/desk'
+    else router.refresh()
+  }
+
+  function serverMenuItems(space: Space): MenuItem[] {
+    return [
+      { label: 'Open', onClick: () => router.push(`/${space.id}`) },
+      { label: 'Copy invite link', onClick: () => copyInvite(space.id) },
+      'divider',
+      { label: 'Leave team', onClick: () => leaveServer(space.id), danger: true },
+    ]
+  }
+
   const getRailItemStyle = (active: boolean, isPlus = false): React.CSSProperties => ({
     display: 'flex',
     alignItems: 'center',
@@ -276,10 +305,11 @@ export function Rail({
               const active = space.id === activeSpaceId
               const hasUnread = !active && (unreadMap[space.id] || 0) > 0
               return (
-                <Link 
-                  key={space.id} 
-                  href={`/${space.id}`} 
-                  title={space.name ?? 'Server'} 
+                <Link
+                  key={space.id}
+                  href={`/${space.id}`}
+                  title={space.name ?? 'Server'}
+                  onContextMenu={(e) => { e.preventDefault(); setServerMenu({ x: e.clientX, y: e.clientY, space }) }}
                   style={getRailItemStyle(active)}
                   className="rail-nav-item"
                 >
@@ -584,6 +614,10 @@ export function Rail({
           to { transform: translateX(0); opacity: 1; }
         }
       `}</style>
+
+      {serverMenu && (
+        <ContextMenu x={serverMenu.x} y={serverMenu.y} items={serverMenuItems(serverMenu.space)} onClose={() => setServerMenu(null)} />
+      )}
     </>
   )
 }

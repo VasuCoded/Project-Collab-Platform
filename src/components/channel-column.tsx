@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useMemo, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useUI } from '@/components/ui-provider'
+import { ContextMenu, type MenuItem } from '@/components/context-menu'
 
 type Channel = { id: string; type: string; name: string }
 
@@ -63,6 +64,23 @@ export function ChannelColumn({
   const [newType, setNewType] = useState('text')
   const [creating, setCreating] = useState(false)
   const [hovered, setHovered] = useState<string | null>(null)
+  const [menu, setMenu] = useState<{ x: number; y: number; channel: Channel } | null>(null)
+
+  function copyChannelLink(id: string) {
+    navigator.clipboard?.writeText(`${window.location.origin}/${spaceId}/${id}`)
+    ui.toast('Link copied.', 'success')
+  }
+
+  function channelMenuItems(c: Channel): MenuItem[] {
+    const items: MenuItem[] = [
+      { label: 'Open', onClick: () => router.push(`/${spaceId}/${c.id}`) },
+      { label: 'Copy link', onClick: () => copyChannelLink(c.id) },
+    ]
+    if (canManage && c.type !== 'cubicle') {
+      items.push('divider', { label: 'Delete channel', onClick: () => deleteChannel(c.id, c.name), danger: true })
+    }
+    return items
+  }
 
   async function deleteChannel(id: string, name: string) {
     const ok = await ui.confirm(
@@ -176,6 +194,7 @@ export function ChannelColumn({
           return (
             <div
               key={c.id}
+              onContextMenu={(e) => { e.preventDefault(); setMenu({ x: e.clientX, y: e.clientY, channel: c }) }}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -264,6 +283,10 @@ export function ChannelColumn({
           </div>
         )}
       </div>
+
+      {menu && (
+        <ContextMenu x={menu.x} y={menu.y} items={channelMenuItems(menu.channel)} onClose={() => setMenu(null)} />
+      )}
     </aside>
   )
 }
