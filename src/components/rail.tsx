@@ -369,8 +369,8 @@ export function Rail({
             gap: 12,
           }}
         >
-          <ThemeToggle />
-          
+          <ThemeToggle showLabel />
+
           <Link href="/settings" title="Profile Settings" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, textDecoration: 'none', width: '100%' }}>
             {profile.avatar_url ? (
               <img src={profile.avatar_url} alt="" style={{ width: 28, height: 28, borderRadius: 8, border: pathname === '/settings' ? '2px solid var(--accent)' : '1px solid var(--border)', objectFit: 'cover', transition: 'all 0.15s' }} />
