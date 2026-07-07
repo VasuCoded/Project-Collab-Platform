@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
+import { LoginBoard } from '@/components/login-board'
 
 const inputStyle = {
   display: 'block',
@@ -97,8 +98,9 @@ export default function LoginPage() {
           <div style={{ width: 28, height: 28, borderRadius: 6, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: 13 }}>CP</div>
           <span style={{ fontWeight: 800, fontSize: 16, fontFamily: 'var(--display-font)', color: 'var(--foreground)' }}>Collab Platform</span>
         </div>
-        <div style={{ position: 'relative', zIndex: 2, maxWidth: 320, padding: '0 24px', textAlign: 'center' }}>
-          <p style={{ fontFamily: 'var(--display-font)', fontSize: 22, lineHeight: 1.35, color: 'var(--foreground)', margin: 0, letterSpacing: '-0.01em' }}>
+        <div style={{ position: 'relative', zIndex: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 28 }}>
+          <LoginBoard />
+          <p style={{ fontFamily: 'var(--display-font)', fontSize: 18, lineHeight: 1.35, color: 'var(--muted)', margin: 0, letterSpacing: '-0.01em', textAlign: 'center', maxWidth: 360 }}>
             Chat, tasks, notes, a whiteboard, and calls. One workspace for a small team.
           </p>
         </div>
