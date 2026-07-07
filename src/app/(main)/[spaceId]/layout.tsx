@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react'
 import { notFound } from 'next/navigation'
-import { getCurrentUser, getMyRole, getSpace, getSpaceChannels, getDmPeers } from '@/lib/supabase/queries'
+import { getCurrentUser, getMyRole, getSpace, getSpaceChannels, getDmList } from '@/lib/supabase/queries'
 import { ChannelColumn } from '@/components/channel-column'
+import { DmColumn } from '@/components/dm-column'
 
 export default async function SpaceLayout({
   children,
@@ -20,15 +21,18 @@ export default async function SpaceLayout({
   ])
   if (!space) notFound()
 
-  // For a DM, title the column with the other person instead of "Direct message".
-  let dmName: string | null = null
+  // A DM shows the whole conversation list as its column, not a "# direct" channel.
   if (space.type === 'dm' && user) {
-    const peers = await getDmPeers([spaceId], user.id)
-    dmName = peers.get(spaceId)?.name ?? null
+    const dms = await getDmList(user.id)
+    return (
+      <div style={{ display: 'flex', flex: 1, minWidth: 0, height: '100%' }}>
+        <DmColumn dms={dms} me={user.id} activeId={spaceId} />
+        <div style={{ flex: 1, minWidth: 0, display: 'flex' }}>{children}</div>
+      </div>
+    )
   }
 
-  const spaceName =
-    space.name ?? dmName ?? (space.type === 'private' ? 'Private' : space.type === 'dm' ? 'Direct message' : 'Server')
+  const spaceName = space.name ?? (space.type === 'private' ? 'Private' : 'Server')
   // invite + member management only make sense in a server.
   const canInvite = space.type === 'server' && (role === 'owner' || role === 'admin')
   // channel add/delete: server admins, or you in your own private space.
