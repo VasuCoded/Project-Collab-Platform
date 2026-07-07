@@ -86,15 +86,6 @@ export function Desk({
       position: 'relative',
     }}>
       <div style={{
-        position: 'absolute',
-        inset: 0,
-        backgroundImage: 'linear-gradient(to right, var(--border-soft) 1px, transparent 1px), linear-gradient(to bottom, var(--border-soft) 1px, transparent 1px)',
-        backgroundSize: '32px 32px',
-        pointerEvents: 'none',
-        opacity: 0.4,
-      }} />
-
-      <div style={{
         position: 'relative',
         maxWidth: 1080,
         margin: '0 auto',

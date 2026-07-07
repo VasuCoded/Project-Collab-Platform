@@ -33,26 +33,6 @@ export function DeskLoader() {
       overflow: "hidden",
     }}>
 
-      <div style={{
-        position: "absolute",
-        inset: 0,
-        backgroundImage:
-          "linear-gradient(to right, var(--border) 1px, transparent 1px), linear-gradient(to bottom, var(--border) 1px, transparent 1px)",
-        backgroundSize: "32px 32px",
-        opacity: 0.45,
-        pointerEvents: "none",
-      }} />
-
-      <div style={{
-        position: "absolute",
-        width: 320,
-        height: 320,
-        borderRadius: "50%",
-        background: "radial-gradient(circle, var(--accent-soft) 0%, transparent 70%)",
-        opacity: 0.6,
-        pointerEvents: "none",
-      }} />
-
       <div style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center", gap: 28 }}>
 
         <div style={{

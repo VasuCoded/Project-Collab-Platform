@@ -129,7 +129,7 @@ export default async function Landing() {
           </div>
         </header>
 
-        <section className="hero-container blueprint-grid" style={{ marginTop: 24, borderRadius: "16px", border: "1px solid var(--border)", overflow: "hidden" }}>
+        <section className="hero-container" style={{ marginTop: 24, borderRadius: "16px", border: "1px solid var(--border)", overflow: "hidden" }}>
           <div className="hero-left">
             <span className="hero-badge">A shared workspace for small teams</span>
             <h1 className="hero-title">Run your team&apos;s work in one place.</h1>
