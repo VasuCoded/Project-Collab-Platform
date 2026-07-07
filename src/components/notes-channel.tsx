@@ -75,10 +75,10 @@ export function NotesChannel({ channelId, channelName, me }: { channelId: string
   }, []);
 
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", height: "100%", minWidth: 0, background: "#0a0a0a", fontFamily: "system-ui, sans-serif" }}>
-      <div style={{ padding: "12px 20px", borderBottom: "1px solid #262626", display: "flex", alignItems: "center", gap: 12 }}>
-        <span style={{ fontWeight: 700, color: "#fff" }}>≡ {channelName}</span>
-        <span style={{ marginLeft: "auto", fontSize: 12, color: "#666" }}>
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", height: "100%", minWidth: 0, background: "var(--background)", fontFamily: "var(--font-sans)", transition: "background-color 0.15s ease" }}>
+      <div style={{ padding: "12px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 12 }}>
+        <span style={{ fontWeight: 700, color: "var(--foreground)" }}>≡ {channelName}</span>
+        <span style={{ marginLeft: "auto", fontSize: 12, color: "var(--muted)" }}>
           {state === "saving" ? "saving…" : state === "saved" ? "saved" : ""}
         </span>
       </div>
@@ -94,12 +94,13 @@ export function NotesChannel({ channelId, channelName, me }: { channelId: string
           resize: "none",
           border: "none",
           outline: "none",
-          background: "#0a0a0a",
-          color: "#e6e6e6",
+          background: "var(--background)",
+          color: "var(--foreground)",
           fontSize: 15,
           lineHeight: 1.6,
           padding: "18px 22px",
-          fontFamily: "var(--font-geist-mono), ui-monospace, 'Cascadia Code', Menlo, monospace",
+          fontFamily: "var(--font-mono), ui-monospace, 'Cascadia Code', Menlo, monospace",
+          transition: "background-color 0.15s ease, color 0.15s ease",
         }}
       />
     </div>

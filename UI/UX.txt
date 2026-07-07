@@ -1,0 +1,167 @@
+================================================================================
+                    UI/UX INSPIRATION & DESIGN BRIEF REPORT
+                  Source: https://scratch.arshnah.in/collab-brief
+================================================================================
+
+This report compiles the UI/UX inspiration, specifications, design directives,
+and token deliverables based on the collab-brief.
+
+--------------------------------------------------------------------------------
+1. THE BRIEFING PAGE'S OWN DESIGN AESTHETICS (A Visual Starting Point)
+--------------------------------------------------------------------------------
+The briefing page itself sets a strong visual precedent for the "focused, calm,
+and sharp" feeling the platform desires. Instead of the typical generic dark mode
+or neon developer theme, it uses a very curated, premium, editorial aesthetic:
+
+* Color Palette:
+  - Background (Paper): #F4F6F3 (A warm, clean, off-white/sage paper tone)
+  - Card Background: #FFFFFF (Pure white for raised items)
+  - Ink (Primary Text): #182019 (A deep, off-black pine color)
+  - Muted Text: #59635C (A soft sage-grey)
+  - Faint Text: #8A938C
+  - Borders/Dividers: #E1E5E0 / #EDEFEB
+  - Primary Accent (Forest Green): #0E5C46
+  - Accent Muted/Ink: #0A4536
+  - Soft Accent Background: #E4EFE9
+  - Danger (Warm Red/Terracotta): #B23A26
+  - Danger Soft Background: #F7E9E4
+  - Warning/Amber (Warm Ochre): #8A5E12
+  - Warning Soft Background: #F3EAD6
+
+* Typography:
+  - Display/Titles: Georgia, "Times New Roman", serif (gives an editorial, high-end look)
+  - Body/UI Text: Clean sans-serif system stack (focused, readable)
+  - Code/Labels: Modern monospace stack (looks technical and precise)
+
+* Layout Polish:
+  - Soft micro-animations (subtle 8px translate-Y slide-in on load)
+  - Curved card corners (12px-14px radii)
+  - High-contrast, clean badges/labels with generous letter-spacing
+
+--------------------------------------------------------------------------------
+2. CORE PLATFORM IDENTITY & CONCEPT
+--------------------------------------------------------------------------------
+* Concept: One unified workspace for a small team (3-10 members) to chat, track
+  tasks, write notes, and call - eliminating the need to cycle between separate tabs
+  like Discord, Trello, Google Docs, and Zoom.
+* Character: Focused, calm, a bit sharp. A tool users sit inside all day.
+* Layout Foundation (The 3-Column Frame):
+  ┌──────────┬──────────────┬───────────────────────────────────────────────────┐
+  │ Rail     │ Channels     │ Main Content Area                                 │
+  │ (72px)   │ (220px)      │ (The active workspace view)                        │
+  ├──────────┼──────────────┼───────────────────────────────────────────────────┤
+  │ Round 44px│ Team-specific│ Chat, Task Board, Notes, Whiteboard, Video call,   │
+  │ icons for│ list of      │ and Google Docs embeds.                           │
+  │ Teams/DMs│ channels +   │                                                   │
+  │ and user │ Invite popout│                                                   │
+  │ settings.│              │                                                   │
+  └──────────┴──────────────┴───────────────────────────────────────────────────┘
+
+--------------------------------------------------------------------------------
+3. CRITICAL DESIGN DIRECTIVES & CONSTRAINTS
+--------------------------------------------------------------------------------
+* ⚠️ NO DARK INDIGO / "BLURPLE": The current codebase uses #4f46e5 (typical Tailwind
+  indigo / Discord blue). The design MUST move away from this. The replacement accent 
+  should be a unique, fresh color that is NOT indigo, purple, or Discord-blue.
+* TASK BOARD IS THE STAR: The task board is the core unique selling point (USP)
+  of the platform. It needs the highest amount of visual polish and interaction design.
+* CURRENTLY DARK-ONLY: The app is dark-only for now. A light mode is optional/nice-to-have.
+* SEMANTIC CONSISTENCY: Do not mix the accent color with semantic states (e.g. green for
+  success/done, amber for warnings/due soon, red for danger/overdue/destructive).
+
+--------------------------------------------------------------------------------
+4. THE 25 SCREENS & SURFACES TO SKIN
+--------------------------------------------------------------------------------
+Every surface listed here already exists in the product functional structure; the task
+is to skin them, apply tokens, and elevate the aesthetic.
+
+A. Getting In:
+  1. Landing Page: Marketing hero section, "start at desk" callout, grid of ~9 feature
+     cards, final CTA, and footer.
+  2. Login: A clean, centered authentication card (magic link / OAuth).
+  3. Onboarding: Display name picker, unique @username claim with live availability states.
+  4. Join by Invite: Screen to confirm joining a team. States: Valid, Expired/Invalid,
+     and Already a member.
+
+B. The Desk (Home Dashboard):
+  5. The Desk View: Unifies your tasks across all teams. Contains:
+     - "Waiting on you": Task list with due tags (e.g. `due in 3h`, `2d overdue`).
+     - "Your teams": Grid of team cards (avatar, name, members, open tasks, unread badge).
+     - "Direct Messages": List of ongoing DMs with all/unread filter toggles.
+
+C. App Shell:
+  6. Rail: 72px vertical strip with 44px round icon buttons (idle, active, hover, unread dots,
+     DM notification count badges, "+" new-team button, user avatar/logout at bottom).
+  7. Channel Column: 220px width showing team header, invite link popover with copy-state,
+     channel list rows (type icon + name, hover/active states, delete action on hover),
+     and inline "+ add channel" form.
+  8. Channel-Type Icons: Replacing inconsistent unicode/emojis with a cohesive, customized
+     family of icons for: Text, Voice/Video, Whiteboard, Tasks, Notes, Reminders, Docs, 
+     Cubicle, Desk, DMs, and Settings.
+
+D. The Channels (Main-Area Views):
+  9. Text Chat (High usage): Header (name + active presence count), scrollable message log
+     (avatar, name, time, body, "(edited)" tag, own message edit/delete hover controls),
+     "load older" button, typing indicator, composer input, and image attach preview.
+  10. Task Board (The Star USP): Three columns (To Do, In Progress, Done) with dot indicator
+      + card counters. Cards show title, assignee avatar (or "claim" button), due labels 
+      (overdue = urgent styling), and move/delete actions. Top header features the "+ add task"
+      inline bar. Must visually suggest drag-and-drop capability.
+  11. Notes: A clean, collaborative text/document editor surface with a subtle "saved" indicator.
+  12. Reminders: A checklist item system (checkbox, label, due time, struck-through complete state).
+  13. Whiteboard: Live shared whiteboard canvas frame, small drawing tool strip, and floating
+      labeled cursors of other active members.
+  14. Voice / Video Call: P2P overlay showing pre-join lobby state, grid tiles for active video feeds
+      or speaker avatars, and a control dock (mute, video toggle, leave call).
+  15. Embedded Docs: Empty state container ("Paste Google Doc link...") and embed viewport wrapper.
+  16. Private Cubicle: Personal draft space using notes/reminders but styled to feel secure/private.
+
+E. People & Settings:
+  17. DM Panel: 300px side-drawer displaying conversation threads, DM creation selector, and
+      @username direct search field with error state when username is invalid.
+  18. DM Chat: Identical to text chat but optimized for 1:1 view without channel headers.
+  19. Members List: List of team members with avatars, display names, @usernames, and custom role tags.
+  20. Profile Settings: Clean profile configuration forms and image avatar uploader.
+
+F. Global Pieces (Used Everywhere):
+  21. Buttons: Clear classes for Primary, Secondary, Ghost, Danger, Disabled, and Busy/Loading ("...").
+  22. Inputs: Single-line text, multi-line textareas, dropdown selects, date pickers, and read-only text fields.
+  23. Modals & Dialogs (Real UI Gaps): Custom replacements for ugly native browser dialogues:
+      - Small input dialog (e.g. new channel name)
+      - Destructive action confirmation dialog (e.g. deleting team)
+      - Toast notifications (errors, success alerts like "copied!")
+  24. Badges, Avatars & Empty States: Universal empty state illustrations, user avatar sizing scale
+      (18px / 32px / 34px / 40px) with initial fallback logic, and overdue/readiness counts.
+
+--------------------------------------------------------------------------------
+5. FIGMA & TOKEN DELIVERABLES TO EXPORT
+--------------------------------------------------------------------------------
+When skinning or exporting designs to code, prioritize extracting these design tokens:
+
+* Surface Ramp: Simplify the codebase's current messy shades of grey into 4 clean levels:
+  - Level 1: App Background
+  - Level 2: Raised Container/Sidebar Background
+  - Level 3: Card Background
+  - Level 4: Borders and Dividers
+* Text Color Ramp: High-contrast (Primary body), Mid-contrast (secondary/subtitles), Faint
+  (metadata), and Disabled.
+* Accent Palette: Primary accent base + hover state + pressed state + soft tinted background
+  (for active selected list rows).
+* Semantic Colors: Standardised Success, Warning, Danger, and Info tones (independent of the
+  brand accent).
+* Type Scale: Precise sizes & font weights mapping page headers, section titles, card text,
+  body text, metadata, and 11px tiny labels.
+* Spacing & Shape: Spacing scale (multiples of 4px: 4/8/12/16/24/32...), corner radius rules
+  (buttons vs card components vs pills vs circular avatars), and drop shadow styles.
+* Icon Set: Unified icon family for the 8 channel types and core rail glyphs.
+
+--------------------------------------------------------------------------------
+6. DESIGN SEQUENCE (PRIORITY IMPLEMENTATION)
+--------------------------------------------------------------------------------
+To maximize efficiency, address components in the following order:
+  1. COLOR SYSTEM & ACCENT DESIGN (Unlocks everything else)
+  2. TASK BOARD SHIELD (The most critical high-polish USP)
+  3. APP SHELL & GLOBAL CONTROL COMPONENT SPECS (Shell, buttons, inputs, modals)
+  4. MAIN CHAT & HOME DASHBOARD (The two most-visited surfaces)
+  5. PERIPHERAL SCREENS (Other channel types, settings, empty states)
+================================================================================

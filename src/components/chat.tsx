@@ -4,6 +4,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
+import { useUI } from "@/components/ui-provider";
 
 type Author = { display_name: string | null; avatar_url: string | null };
 type Msg = {
@@ -26,6 +27,7 @@ function timeOf(iso: string) {
 
 export function Chat({ channelId, channelName, me, meName, dm = false }: { channelId: string; channelName: string; me: string; meName: string; dm?: boolean }) {
   const supabase = useMemo(() => createClient(), []);
+  const ui = useUI();
   const [messages, setMessages] = useState<Msg[]>([]);
   const [text, setText] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -181,7 +183,7 @@ export function Chat({ channelId, channelName, me, meName, dm = false }: { chann
       const path = `${channelId}/${Date.now()}-${file.name}`;
       const { error: upErr } = await supabase.storage.from("chat-images").upload(path, file);
       if (upErr) {
-        alert(`Image upload failed: ${upErr.message}`);
+        ui.alert(`Image upload failed: ${upErr.message}`, 'Upload Error');
         setSending(false);
         return;
       }
@@ -190,7 +192,7 @@ export function Chat({ channelId, channelName, me, meName, dm = false }: { chann
     const { error } = await supabase.from("messages").insert({ channel_id: channelId, author_id: me, content, image_url });
     setSending(false);
     if (error) {
-      alert(error.message);
+      ui.alert(error.message, 'Error');
       return;
     }
     setText("");
@@ -203,7 +205,7 @@ export function Chat({ channelId, channelName, me, meName, dm = false }: { chann
     const { error } = await supabase.from("messages").delete().eq("id", id);
     if (error) {
       setMessages(before); // roll back
-      alert(error.message);
+      ui.alert(error.message, 'Error');
       return;
     }
     chRef.current?.send({ type: "broadcast", event: "msgdelete", payload: { id } });
@@ -227,26 +229,26 @@ export function Chat({ channelId, channelName, me, meName, dm = false }: { chann
     const { error } = await supabase.from("messages").update({ content, edited_at }).eq("id", id);
     if (error) {
       setMessages((prev) => prev.map((m) => (m.id === id ? original : m))); // roll back
-      alert(error.message);
+      ui.alert(error.message, 'Error');
       return;
     }
     chRef.current?.send({ type: "broadcast", event: "msgedit", payload: { id, content, edited_at } });
   }
 
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", height: "100%", minWidth: 0, fontFamily: "system-ui, sans-serif" }}>
-      <div style={{ padding: "12px 20px", borderBottom: "1px solid #262626", display: "flex", alignItems: "baseline", gap: 12 }}>
-        <span style={{ fontWeight: 700, color: "#fff" }}>{dm ? channelName : `# ${channelName}`}</span>
-        <span style={{ fontSize: 12, color: "#777" }}>{here} here</span>
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", height: "100%", minWidth: 0, fontFamily: "var(--font-sans)", transition: "background-color 0.15s ease" }}>
+      <div style={{ padding: "12px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "baseline", gap: 12 }}>
+        <span style={{ fontWeight: 700, color: "var(--foreground)" }}>{dm ? channelName : `# ${channelName}`}</span>
+        <span style={{ fontSize: 12, color: "var(--muted)" }}>{here} here</span>
       </div>
 
       <div ref={scrollRef} style={{ flex: 1, overflowY: "auto", padding: "12px 20px" }}>
         {hasMore && (
-          <button onClick={loadOlder} disabled={loadingOlder} style={{ display: "block", margin: "0 auto 12px", background: "none", border: "1px solid #333", color: "#aaa", borderRadius: 6, padding: "4px 12px", cursor: "pointer", fontSize: 12 }}>
+          <button onClick={loadOlder} disabled={loadingOlder} style={{ display: "block", margin: "0 auto 12px", background: "var(--card)", border: "1px solid var(--border)", color: "var(--muted)", borderRadius: 6, padding: "4px 12px", cursor: "pointer", fontSize: 12, transition: "all 0.15s ease" }}>
             {loadingOlder ? "loading…" : "load older"}
           </button>
         )}
-        {messages.length === 0 && <div style={{ color: "#666", textAlign: "center", marginTop: 40 }}>No messages yet. Say hi 👋</div>}
+        {messages.length === 0 && <div style={{ color: "var(--faint)", textAlign: "center", marginTop: 40, fontSize: 14 }}>No messages yet. Say hi 👋</div>}
         {messages.map((m) => (
           <div
             key={m.id}
@@ -257,14 +259,14 @@ export function Chat({ channelId, channelName, me, meName, dm = false }: { chann
             {m.author?.avatar_url ? (
               <img src={m.author.avatar_url} alt="" style={{ width: 34, height: 34, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
             ) : (
-              <div style={{ width: 34, height: 34, borderRadius: "50%", background: "#333", color: "#ccc", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, flexShrink: 0 }}>
+              <div style={{ width: 34, height: 34, borderRadius: "50%", background: "var(--border)", color: "var(--muted)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 600, flexShrink: 0 }}>
                 {(m.author?.display_name ?? "?").trim().slice(0, 2).toUpperCase() || "?"}
               </div>
             )}
             <div style={{ minWidth: 0, flex: 1 }}>
               <div style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
-                <b style={{ color: "#fff", fontSize: 14 }}>{m.author?.display_name ?? "Someone"}</b>
-                <span style={{ color: "#666", fontSize: 11 }}>{timeOf(m.created_at)}</span>
+                <b style={{ color: "var(--foreground)", fontSize: 14 }}>{m.author?.display_name ?? "Someone"}</b>
+                <span style={{ color: "var(--faint)", fontSize: 11 }}>{timeOf(m.created_at)}</span>
               </div>
               {editingId === m.id ? (
                 <div style={{ marginTop: 2 }}>
@@ -281,20 +283,20 @@ export function Chat({ channelId, channelName, me, meName, dm = false }: { chann
                       }
                     }}
                     rows={2}
-                    style={{ width: "100%", background: "#141414", border: "1px solid #4f46e5", borderRadius: 8, padding: "6px 10px", color: "#ededed", fontSize: 14, resize: "vertical", fontFamily: "inherit" }}
+                    style={{ width: "100%", background: "var(--background)", border: "1px solid var(--accent)", borderRadius: 8, padding: "6px 10px", color: "var(--foreground)", fontSize: 14, resize: "vertical", fontFamily: "inherit", outline: "none" }}
                   />
-                  <div style={{ display: "flex", gap: 8, marginTop: 4, fontSize: 12, color: "#777" }}>
-                    <button onClick={() => saveEdit(m.id)} style={{ background: "#4f46e5", color: "#fff", border: "none", borderRadius: 6, padding: "3px 10px", cursor: "pointer", fontSize: 12 }}>Save</button>
-                    <button onClick={() => setEditingId(null)} style={{ background: "none", border: "none", color: "#888", cursor: "pointer", fontSize: 12 }}>cancel</button>
-                    <span>Enter to save · Esc to cancel</span>
+                  <div style={{ display: "flex", gap: 8, marginTop: 4, fontSize: 12, color: "var(--muted)" }}>
+                    <button onClick={() => saveEdit(m.id)} style={{ background: "var(--accent)", color: "#fff", border: "none", borderRadius: 6, padding: "3px 10px", cursor: "pointer", fontSize: 12 }}>Save</button>
+                    <button onClick={() => setEditingId(null)} style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer", fontSize: 12 }}>cancel</button>
+                    <span style={{ color: "var(--faint)" }}>Enter to save · Esc to cancel</span>
                   </div>
                 </div>
               ) : (
                 <>
                   {m.content && (
-                    <div style={{ color: "#ddd", fontSize: 14, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                    <div style={{ color: "var(--foreground)", fontSize: 14, whiteSpace: "pre-wrap", wordBreak: "break-word", lineHeight: 1.5 }}>
                       {m.content}
-                      {m.edited_at && <span style={{ color: "#666", fontSize: 11, marginLeft: 6 }}>(edited)</span>}
+                      {m.edited_at && <span style={{ color: "var(--faint)", fontSize: 11, marginLeft: 6 }}>(edited)</span>}
                     </div>
                   )}
                   {m.image_url && <img src={m.image_url} alt="" style={{ maxWidth: 320, maxHeight: 320, borderRadius: 8, marginTop: 4, display: "block" }} />}
@@ -304,11 +306,11 @@ export function Chat({ channelId, channelName, me, meName, dm = false }: { chann
             {m.author_id === me && hoverMsg === m.id && editingId !== m.id && (
               <div style={{ display: "flex", gap: 2, flexShrink: 0, alignSelf: "flex-start" }}>
                 {m.content && (
-                  <button onClick={() => startEdit(m)} title="Edit message" style={{ background: "none", border: "none", color: "#666", cursor: "pointer", fontSize: 12, padding: "2px 4px" }}>
+                  <button onClick={() => startEdit(m)} title="Edit message" style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer", fontSize: 12, padding: "2px 4px" }} onMouseEnter={(e) => e.currentTarget.style.color = "var(--accent)"} onMouseLeave={(e) => e.currentTarget.style.color = "var(--muted)"}>
                     ✎
                   </button>
                 )}
-                <button onClick={() => deleteMessage(m.id)} title="Delete message" style={{ background: "none", border: "none", color: "#666", cursor: "pointer", fontSize: 13, padding: "2px 4px" }}>
+                <button onClick={() => deleteMessage(m.id)} title="Delete message" style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer", fontSize: 13, padding: "2px 4px" }} onMouseEnter={(e) => e.currentTarget.style.color = "var(--danger)"} onMouseLeave={(e) => e.currentTarget.style.color = "var(--muted)"}>
                   🗑
                 </button>
               </div>
@@ -317,26 +319,26 @@ export function Chat({ channelId, channelName, me, meName, dm = false }: { chann
         ))}
       </div>
 
-      <div style={{ minHeight: 18, padding: "0 20px", color: "#777", fontSize: 12 }}>
+      <div style={{ minHeight: 18, padding: "0 20px", color: "var(--muted)", fontSize: 12 }}>
         {typers.length > 0 && `${typers.join(", ")} ${typers.length === 1 ? "is" : "are"} typing…`}
       </div>
 
       {file && (
-        <div style={{ padding: "0 20px 6px", color: "#888", fontSize: 12 }}>
+        <div style={{ padding: "0 20px 6px", color: "var(--muted)", fontSize: 12 }}>
           📎 {file.name}{" "}
-          <button onClick={() => setFile(null)} style={{ background: "none", border: "none", color: "#f87171", cursor: "pointer" }}>
+          <button onClick={() => setFile(null)} style={{ background: "none", border: "none", color: "var(--danger)", cursor: "pointer", fontWeight: 700 }}>
             ×
           </button>
         </div>
       )}
 
-      <form onSubmit={send} style={{ display: "flex", gap: 8, padding: "12px 20px", borderTop: "1px solid #262626", alignItems: "center" }}>
-        <input value={text} onChange={(e) => onType(e.target.value)} placeholder={dm ? `Message ${channelName}` : `Message #${channelName}`} style={{ flex: 1, background: "#141414", border: "1px solid #333", borderRadius: 8, padding: "9px 12px", color: "#ededed", fontSize: 14 }} />
-        <label style={{ color: "#888", cursor: "pointer", fontSize: 20 }} title="attach image">
+      <form onSubmit={send} style={{ display: "flex", gap: 8, padding: "12px 20px", borderTop: "1px solid var(--border)", alignItems: "center" }}>
+        <input value={text} onChange={(e) => onType(e.target.value)} placeholder={dm ? `Message ${channelName}` : `Message #${channelName}`} style={{ flex: 1, background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, padding: "9px 12px", color: "var(--foreground)", fontSize: 14, outline: "none" }} />
+        <label style={{ color: "var(--muted)", cursor: "pointer", fontSize: 20, transition: "color 0.15s ease" }} title="attach image" onMouseEnter={(e) => e.currentTarget.style.color = "var(--foreground)"} onMouseLeave={(e) => e.currentTarget.style.color = "var(--muted)"}>
           📎
           <input type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] ?? null)} style={{ display: "none" }} />
         </label>
-        <button type="submit" disabled={sending} style={{ background: "#4f46e5", color: "#fff", border: "none", borderRadius: 8, padding: "9px 16px", cursor: "pointer", fontSize: 14 }}>
+        <button type="submit" disabled={sending} style={{ background: "var(--accent)", color: "#fff", border: "none", borderRadius: 8, padding: "9px 16px", cursor: "pointer", fontSize: 14, fontWeight: 600, transition: "background-color 0.15s ease" }} onMouseEnter={(e) => e.currentTarget.style.background = "var(--accent-hover)"} onMouseLeave={(e) => e.currentTarget.style.background = "var(--accent)"}>
           {sending ? "…" : "Send"}
         </button>
       </form>

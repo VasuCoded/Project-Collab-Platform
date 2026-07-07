@@ -3,6 +3,7 @@
 
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { useUI } from "@/components/ui-provider";
 
 type Status = "todo" | "in_progress" | "done";
 type Task = {
@@ -17,9 +18,9 @@ type Task = {
 type Member = { id: string; name: string; avatar: string | null };
 
 const COLUMNS: { key: Status; label: string; accent: string }[] = [
-  { key: "todo", label: "To do", accent: "#6b7280" },
-  { key: "in_progress", label: "In progress", accent: "#4f46e5" },
-  { key: "done", label: "Done", accent: "#22c55e" },
+  { key: "todo", label: "To do", accent: "var(--muted)" },
+  { key: "in_progress", label: "In progress", accent: "var(--accent)" },
+  { key: "done", label: "Done", accent: "var(--success)" },
 ];
 
 const NEXT: Record<Status, Status | null> = { todo: "in_progress", in_progress: "done", done: null };
@@ -43,6 +44,7 @@ function dueLabel(iso: string | null): { text: string; overdue: boolean } | null
 
 export function TaskBoard({ spaceId, channelId, channelName, me }: { spaceId: string; channelId: string; channelName: string; me: string }) {
   const supabase = useMemo(() => createClient(), []);
+  const ui = useUI();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
@@ -113,9 +115,10 @@ export function TaskBoard({ spaceId, channelId, channelName, me }: { spaceId: st
       .single();
     setAdding(false);
     if (error) {
-      alert(error.message);
+      ui.alert(error.message, 'Error');
       return;
     }
+    ui.toast('Task added!', 'success');
     setTasks((prev) => (prev.some((x) => x.id === data.id) ? prev : [...prev, data as Task]));
     setTitle("");
     setAssignee("");
@@ -128,7 +131,7 @@ export function TaskBoard({ spaceId, channelId, channelName, me }: { spaceId: st
     const { error } = await supabase.from("tasks").update(changes).eq("id", id);
     if (error) {
       setTasks(before); // roll back
-      alert(error.message);
+      ui.alert(error.message, 'Error');
     }
   }
 
@@ -138,27 +141,27 @@ export function TaskBoard({ spaceId, channelId, channelName, me }: { spaceId: st
     const { error } = await supabase.from("tasks").delete().eq("id", id);
     if (error) {
       setTasks(before);
-      alert(error.message);
+      ui.alert(error.message, 'Error');
     }
   }
 
   const byStatus = (s: Status) => tasks.filter((t) => t.status === s);
 
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", height: "100%", minWidth: 0, background: "#0a0a0a", fontFamily: "system-ui, sans-serif" }}>
-      <div style={{ padding: "12px 20px", borderBottom: "1px solid #262626", display: "flex", alignItems: "baseline", gap: 12 }}>
-        <span style={{ fontWeight: 700, color: "#fff" }}>☑ {channelName}</span>
-        <span style={{ fontSize: 12, color: "#777" }}>{tasks.filter((t) => t.status !== "done").length} open</span>
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", height: "100%", minWidth: 0, background: "var(--background)", fontFamily: "var(--font-sans)", transition: "background-color 0.15s ease" }}>
+      <div style={{ padding: "12px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "baseline", gap: 12 }}>
+        <span style={{ fontWeight: 700, color: "var(--foreground)" }}>☑ {channelName}</span>
+        <span style={{ fontSize: 12, color: "var(--muted)" }}>{tasks.filter((t) => t.status !== "done").length} open</span>
       </div>
 
-      <form onSubmit={addTask} style={{ display: "flex", gap: 8, padding: "12px 20px", borderBottom: "1px solid #1c1c1c", flexWrap: "wrap" }}>
+      <form onSubmit={addTask} style={{ display: "flex", gap: 8, padding: "12px 20px", borderBottom: "1px solid var(--border)", flexWrap: "wrap" }}>
         <input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Add a task…"
-          style={{ flex: "1 1 240px", minWidth: 160, background: "#141414", border: "1px solid #333", borderRadius: 8, padding: "8px 12px", color: "#ededed", fontSize: 14 }}
+          style={{ flex: "1 1 240px", minWidth: 160, background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, padding: "8px 12px", color: "var(--foreground)", fontSize: 14, outline: "none" }}
         />
-        <select value={assignee} onChange={(e) => setAssignee(e.target.value)} title="Assign to" style={{ background: "#141414", border: "1px solid #333", borderRadius: 8, padding: "8px 10px", color: assignee ? "#ededed" : "#888", fontSize: 13 }}>
+        <select value={assignee} onChange={(e) => setAssignee(e.target.value)} title="Assign to" style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, padding: "8px 10px", color: assignee ? "var(--foreground)" : "var(--muted)", fontSize: 13, outline: "none" }}>
           <option value="">Unassigned</option>
           {members.map((m) => (
             <option key={m.id} value={m.id}>
@@ -166,8 +169,8 @@ export function TaskBoard({ spaceId, channelId, channelName, me }: { spaceId: st
             </option>
           ))}
         </select>
-        <input type="date" value={due} onChange={(e) => setDue(e.target.value)} title="Due date" style={{ background: "#141414", border: "1px solid #333", borderRadius: 8, padding: "8px 10px", color: due ? "#ededed" : "#888", fontSize: 13, colorScheme: "dark" }} />
-        <button type="submit" disabled={adding || !title.trim()} style={{ background: "#4f46e5", color: "#fff", border: "none", borderRadius: 8, padding: "8px 16px", cursor: "pointer", fontSize: 14, opacity: adding || !title.trim() ? 0.6 : 1 }}>
+        <input type="date" value={due} onChange={(e) => setDue(e.target.value)} title="Due date" style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, padding: "8px 10px", color: due ? "var(--foreground)" : "var(--muted)", fontSize: 13, outline: "none" }} />
+        <button type="submit" disabled={adding || !title.trim()} style={{ background: "var(--accent)", color: "#fff", border: "none", borderRadius: 8, padding: "8px 16px", cursor: "pointer", fontSize: 14, fontWeight: 600, opacity: adding || !title.trim() ? 0.6 : 1, transition: "background-color 0.15s ease" }} onMouseEnter={(e) => e.currentTarget.style.background = "var(--accent-hover)"} onMouseLeave={(e) => e.currentTarget.style.background = "var(--accent)"}>
           {adding ? "…" : "Add"}
         </button>
       </form>
@@ -176,50 +179,50 @@ export function TaskBoard({ spaceId, channelId, channelName, me }: { spaceId: st
         {COLUMNS.map((col) => {
           const items = byStatus(col.key);
           return (
-            <div key={col.key} style={{ flex: "1 1 0", minWidth: 240, background: "#111", border: "1px solid #222", borderRadius: 12, display: "flex", flexDirection: "column", maxHeight: "100%" }}>
-              <div style={{ padding: "12px 14px", display: "flex", alignItems: "center", gap: 8, borderBottom: "1px solid #1f1f1f" }}>
+            <div key={col.key} style={{ flex: "1 1 0", minWidth: 240, background: "var(--sidebar)", border: "1px solid var(--border)", borderRadius: 12, display: "flex", flexDirection: "column", maxHeight: "100%", boxShadow: "0 4px 12px var(--shadow)" }}>
+              <div style={{ padding: "12px 14px", display: "flex", alignItems: "center", gap: 8, borderBottom: "1px solid var(--border)" }}>
                 <span style={{ width: 8, height: 8, borderRadius: "50%", background: col.accent }} />
-                <span style={{ color: "#ddd", fontSize: 13, fontWeight: 700 }}>{col.label}</span>
-                <span style={{ color: "#666", fontSize: 12 }}>{items.length}</span>
+                <span style={{ color: "var(--foreground)", fontSize: 13, fontWeight: 700 }}>{col.label}</span>
+                <span style={{ color: "var(--muted)", fontSize: 12 }}>{items.length}</span>
               </div>
               <div style={{ padding: 10, display: "flex", flexDirection: "column", gap: 8, overflowY: "auto" }}>
-                {loading && <div style={{ color: "#555", fontSize: 13, padding: 8 }}>loading…</div>}
-                {!loading && items.length === 0 && <div style={{ color: "#4a4a4a", fontSize: 13, padding: "10px 8px" }}>—</div>}
+                {loading && <div style={{ color: "var(--faint)", fontSize: 13, padding: 8 }}>loading…</div>}
+                {!loading && items.length === 0 && <div style={{ color: "var(--faint)", fontSize: 13, padding: "10px 8px" }}>—</div>}
                 {items.map((t) => {
                   const owner = t.owner_id ? memberById.get(t.owner_id) : null;
                   const d = dueLabel(t.due_at);
                   return (
-                    <div key={t.id} style={{ background: "#181818", border: "1px solid #262626", borderRadius: 10, padding: "10px 11px", display: "flex", flexDirection: "column", gap: 8 }}>
-                      <div style={{ color: t.status === "done" ? "#8a8a8a" : "#ededed", fontSize: 14, lineHeight: 1.35, textDecoration: t.status === "done" ? "line-through" : "none", wordBreak: "break-word" }}>{t.title}</div>
+                    <div key={t.id} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 10, padding: "10px 11px", display: "flex", flexDirection: "column", gap: 8, boxShadow: "0 2px 4px var(--shadow)", transition: "transform 0.15s ease" }} onMouseEnter={(e) => e.currentTarget.style.transform = "translateY(-1px)"} onMouseLeave={(e) => e.currentTarget.style.transform = "translateY(0px)"}>
+                      <div style={{ color: t.status === "done" ? "var(--faint)" : "var(--foreground)", fontSize: 14, lineHeight: 1.35, textDecoration: t.status === "done" ? "line-through" : "none", wordBreak: "break-word" }}>{t.title}</div>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                         {owner ? (
-                          <span title={owner.name} style={{ display: "inline-flex", alignItems: "center", gap: 5, color: "#bcbcbc", fontSize: 12 }}>
+                          <span title={owner.name} style={{ display: "inline-flex", alignItems: "center", gap: 5, color: "var(--muted)", fontSize: 12 }}>
                             {owner.avatar ? (
                               <img src={owner.avatar} alt="" style={{ width: 18, height: 18, borderRadius: "50%", objectFit: "cover" }} />
                             ) : (
-                              <span style={{ width: 18, height: 18, borderRadius: "50%", background: "#333", color: "#ccc", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700 }}>{initials(owner.name)}</span>
+                              <span style={{ width: 18, height: 18, borderRadius: "50%", background: "var(--border)", color: "var(--muted)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700 }}>{initials(owner.name)}</span>
                             )}
                             {owner.id === me ? "You" : owner.name}
                           </span>
                         ) : (
-                          <button onClick={() => patch(t.id, { owner_id: me })} style={{ background: "none", border: "1px dashed #3a3a3a", color: "#888", borderRadius: 999, padding: "1px 8px", fontSize: 11, cursor: "pointer" }}>
+                          <button onClick={() => patch(t.id, { owner_id: me })} style={{ background: "none", border: "1px dashed var(--border)", color: "var(--accent)", borderRadius: 999, padding: "1px 8px", fontSize: 11, cursor: "pointer", transition: "all 0.15s ease" }} onMouseEnter={(e) => { e.currentTarget.style.background = "var(--border-soft)" }} onMouseLeave={(e) => { e.currentTarget.style.background = "transparent" }}>
                             claim
                           </button>
                         )}
-                        {d && <span style={{ fontSize: 11, fontWeight: 600, color: d.overdue && t.status !== "done" ? "#f87171" : "#8a8a8a" }}>{d.text}</span>}
+                        {d && <span style={{ fontSize: 11, fontWeight: 600, color: d.overdue && t.status !== "done" ? "var(--danger)" : "var(--muted)" }}>{d.text}</span>}
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
                         {PREV[t.status] && (
-                          <button onClick={() => patch(t.id, { status: PREV[t.status]! })} title="Move back" style={arrowBtn}>
+                          <button onClick={() => patch(t.id, { status: PREV[t.status]! })} title="Move back" style={arrowBtn} onMouseEnter={(e) => { e.currentTarget.style.background = "var(--border)" }} onMouseLeave={(e) => { e.currentTarget.style.background = "var(--border-soft)" }}>
                             ←
                           </button>
                         )}
                         {NEXT[t.status] && (
-                          <button onClick={() => patch(t.id, { status: NEXT[t.status]! })} title="Move forward" style={arrowBtn}>
+                          <button onClick={() => patch(t.id, { status: NEXT[t.status]! })} title="Move forward" style={arrowBtn} onMouseEnter={(e) => { e.currentTarget.style.background = "var(--border)" }} onMouseLeave={(e) => { e.currentTarget.style.background = "var(--border-soft)" }}>
                             →
                           </button>
                         )}
-                        <button onClick={() => remove(t.id)} title="Delete" style={{ ...arrowBtn, marginLeft: "auto", color: "#a15" }}>
+                        <button onClick={() => remove(t.id)} title="Delete" style={{ ...arrowBtn, marginLeft: "auto", color: "var(--danger)" }} onMouseEnter={(e) => { e.currentTarget.style.background = "var(--danger-soft)" }} onMouseLeave={(e) => { e.currentTarget.style.background = "var(--border-soft)" }}>
                           ✕
                         </button>
                       </div>
@@ -236,12 +239,13 @@ export function TaskBoard({ spaceId, channelId, channelName, me }: { spaceId: st
 }
 
 const arrowBtn: React.CSSProperties = {
-  background: "#202020",
-  border: "1px solid #303030",
-  color: "#bbb",
+  background: "var(--border-soft)",
+  border: "1px solid var(--border)",
+  color: "var(--foreground)",
   borderRadius: 6,
   padding: "2px 9px",
   fontSize: 13,
   cursor: "pointer",
   lineHeight: 1.2,
+  transition: "all 0.15s ease",
 };

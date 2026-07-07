@@ -6,6 +6,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { signOut } from '@/app/auth/actions'
 import { createServer, startDm } from '@/app/(main)/actions'
 import { createClient } from '@/lib/supabase/client'
+import { ThemeToggle } from '@/components/theme-toggle'
+import { useUI } from '@/components/ui-provider'
 
 type Space = { id: string; type: string; name: string | null }
 type Dm = { id: string; type: string; name: string | null; avatar: string | null; unread: number; lastAt: string | null }
@@ -15,27 +17,45 @@ function initials(name: string | null) {
   return (name ?? '?').trim().slice(0, 2).toUpperCase() || '?'
 }
 
-// The desk mark: a small workstation glyph so the top button reads "workspace",
-// not "chat". Clicking it opens the desk (the `/` route).
+function Badge({ n }: { n: number }) {
+  if (n <= 0) return null
+  return (
+    <span style={{
+      minWidth: 16,
+      height: 16,
+      padding: '0 5px',
+      borderRadius: 4,
+      background: 'var(--accent)',
+      color: '#fff',
+      fontSize: 10,
+      fontFamily: 'var(--font-mono), monospace',
+      fontWeight: 700,
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: 0,
+    }}>
+      {n > 99 ? '99+' : n}
+    </span>
+  )
+}
+
 function DeskGlyph() {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <path d="M3 4h18" />
-      <path d="M4 4v16" />
-      <path d="M20 4v16" />
-      <path d="M4 13h16" />
-      <path d="M9 13v3" />
-      <path d="M15 13v3" />
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <path d="M9 3v18" />
+      <path d="M15 3v18" />
+      <path d="M3 9h18" />
+      <path d="M3 15h18" />
     </svg>
   )
 }
 
-// Speech-bubble glyph for the DMs button. This is the single entry point for all
-// direct messages — individual DMs never get their own rail icon.
 function DmGlyph() {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7a8.5 8.5 0 0 1-.9-3.8A8.38 8.38 0 0 1 12.5 3 8.38 8.38 0 0 1 21 11.5z" />
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
     </svg>
   )
 }
@@ -57,13 +77,12 @@ export function Rail({
 }) {
   const pathname = usePathname()
   const router = useRouter()
+  const ui = useUI()
   const supabase = useMemo(() => createClient(), [])
   const activeSpaceId = pathname.split('/')[1]
   const [busy, setBusy] = useState(false)
   const [dmOpen, setDmOpen] = useState(false)
 
-  // "New message" picker: people you share a space with, so you can start a DM
-  // straight from the panel instead of hunting through a server's member list.
   const [picking, setPicking] = useState(false)
   const [people, setPeople] = useState<{ id: string; name: string; username: string | null; avatar: string | null }[] | null>(null)
   const [pickQuery, setPickQuery] = useState('')
@@ -82,8 +101,6 @@ export function Rail({
     setPeople((profs ?? []).map((p) => ({ id: p.id, name: p.display_name ?? 'Member', username: p.username, avatar: p.avatar_url })).sort((a, b) => a.name.localeCompare(b.name)))
   }, [supabase, me])
 
-  // Look up any user by their exact @username and DM them — works even if you
-  // don't share a space (profiles are readable to all signed-in users).
   async function dmByUsername() {
     const handle = handleQuery.trim().toLowerCase().replace(/^@/, '')
     if (!handle || startingDm) return
@@ -123,25 +140,18 @@ export function Rail({
       router.push(`/${id}`)
       router.refresh()
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Could not start DM')
+      ui.alert(e instanceof Error ? e.message : 'Could not start DM', 'Error')
     } finally {
       setStartingDm(false)
     }
   }
 
-  // One unread-per-space map covers both server dots and DM badges. Held in state
-  // so it can update live (below) without re-rendering the whole app; re-synced
-  // when the server sends fresh data (navigation).
   const [unreadMap, setUnreadMap] = useState<Record<string, number>>(unread)
-  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => setUnreadMap(unread), [unread])
 
-  // A DM is "active" when the user is currently inside one of the dm spaces.
   const inDm = dms.some((d) => d.id === activeSpaceId)
   const totalUnread = dms.reduce((n, d) => n + (unreadMap[d.id] || 0), 0)
 
-  // Keep unread live: when a message from someone else lands, re-pull the
-  // per-space counts (one cheap RPC) instead of re-running the server layout.
   const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const refreshUnread = useCallback(async () => {
     const { data, error } = await supabase.rpc('unread_summary')
@@ -166,311 +176,441 @@ export function Rail({
     }
   }, [supabase, me, refreshUnread])
 
-  // Opening a channel marks it read (in <Chat>); re-pull unread shortly after so
-  // its dot/badge clears. Without this the layout never re-runs on client nav, so
-  // a dot would linger until the next incoming message or a full reload.
   useEffect(() => {
     const t = setTimeout(refreshUnread, 1000)
     return () => clearTimeout(t)
   }, [pathname, refreshUnread])
 
   async function onCreate() {
-    const name = window.prompt('New server name')
+    const name = await ui.prompt('Enter new server name:', '', 'Create Server')
     if (!name || !name.trim()) return
     setBusy(true)
     try {
       const id = await createServer(name.trim())
+      ui.toast(`Server "${name.trim()}" created!`, 'success')
       window.location.href = `/${id}`
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Could not create server')
+      ui.alert(e instanceof Error ? e.message : 'Could not create server', 'Error')
       setBusy(false)
     }
   }
 
   function openDm(id: string) {
     setDmOpen(false)
-    setUnreadMap((prev) => ({ ...prev, [id]: 0 })) // clear its badge on open
+    setUnreadMap((prev) => ({ ...prev, [id]: 0 }))
     router.push(`/${id}`)
   }
 
-  const railItem = (active: boolean, extra?: React.CSSProperties): React.CSSProperties => ({
+  // Cool squircle geometry style mapping
+  const getRailItemStyle = (active: boolean, isPlus = false): React.CSSProperties => ({
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     width: 44,
     height: 44,
-    borderRadius: 12,
-    marginBottom: 8,
-    background: active ? '#4f46e5' : '#2a2a2a',
-    color: '#fff',
+    borderRadius: active ? 10 : 16,
+    marginBottom: 10,
+    background: active 
+      ? 'var(--accent)' 
+      : isPlus ? 'transparent' : 'var(--card)',
+    color: active 
+      ? '#fff' 
+      : isPlus ? 'var(--accent)' : 'var(--foreground)',
+    border: isPlus ? '1px dashed var(--border)' : '1px solid var(--border)',
     textDecoration: 'none',
-    fontSize: 14,
-    fontWeight: 600,
-    border: 'none',
+    fontSize: 12,
+    fontWeight: 700,
+    fontFamily: 'var(--font-mono), monospace',
     cursor: 'pointer',
-    ...extra,
+    position: 'relative',
+    transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+    boxShadow: active ? '0 4px 12px var(--shadow-lg)' : 'none',
   })
-
-  function serverIcon(space: Space) {
-    const active = space.id === activeSpaceId
-    const hasUnread = !active && (unreadMap[space.id] || 0) > 0
-    return (
-      <Link key={space.id} href={`/${space.id}`} title={space.name ?? 'Server'} style={railItem(active, { position: 'relative' })}>
-        {initials(space.name ?? 'Server')}
-        {hasUnread && (
-          <span aria-hidden style={{ position: 'absolute', left: -3, top: '50%', marginTop: -5, width: 10, height: 10, borderRadius: '50%', background: '#fff', border: '2px solid #0f0f0f' }} />
-        )}
-      </Link>
-    )
-  }
 
   return (
     <>
       <nav
         style={{
           width: 72,
-          background: '#0f0f0f',
+          background: 'var(--sidebar)',
+          borderRight: '1px solid var(--border)',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          padding: '12px 0',
+          padding: '16px 0',
           height: '100%',
+          flexShrink: 0,
+          zIndex: 30,
         }}
       >
         <div style={{ flex: 1, overflowY: 'auto', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          {/* Desk — the home of the workspace. */}
-          <Link href="/desk" title="Desk" style={railItem(pathname === '/desk')}>
+          
+          {/* Desk Home button */}
+          <Link 
+            href="/desk" 
+            title="Desk" 
+            style={getRailItemStyle(pathname === '/desk')}
+            className="rail-nav-item"
+          >
             <DeskGlyph />
+            {pathname === '/desk' && <span className="active-dot-left" />}
           </Link>
 
-          {/* Direct messages — one button for all of them, opens the DM panel. */}
+          {/* DM Hub Button */}
           <button
             onClick={() => { setDmOpen((o) => !o); setPicking(false) }}
-            title="Direct messages"
-            style={railItem(dmOpen || inDm, { position: 'relative', color: dmOpen || inDm ? '#fff' : '#cfcfcf' })}
+            title="Direct Messages"
+            style={getRailItemStyle(dmOpen || inDm)}
+            className="rail-nav-item"
           >
             <DmGlyph />
+            {(dmOpen || inDm) && <span className="active-dot-left" />}
             {totalUnread > 0 && (
               <span
                 aria-hidden
-                style={{ position: 'absolute', top: 6, right: 4, minWidth: 16, height: 16, padding: '0 4px', borderRadius: 8, background: '#ef4444', color: '#fff', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid #0f0f0f' }}
+                style={{
+                  position: 'absolute',
+                  top: -2,
+                  right: -2,
+                  minWidth: 16,
+                  height: 16,
+                  padding: '0 4px',
+                  borderRadius: 99,
+                  background: 'var(--danger)',
+                  color: '#fff',
+                  fontSize: 9,
+                  fontFamily: 'var(--font-mono)',
+                  fontWeight: 800,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 0 0 2px var(--sidebar)',
+                }}
               >
                 {totalUnread > 99 ? '99+' : totalUnread}
               </span>
             )}
           </button>
 
-          <div style={{ width: 32, height: 1, background: '#333', margin: '6px 0 10px' }} />
+          {/* Section Divider */}
+          <div style={{ width: 24, height: 1, background: 'var(--border)', margin: '8px 0 12px' }} />
 
-          {servers.map(serverIcon)}
+          {/* Servers Grid */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+            {servers.map((space) => {
+              const active = space.id === activeSpaceId
+              const hasUnread = !active && (unreadMap[space.id] || 0) > 0
+              return (
+                <Link 
+                  key={space.id} 
+                  href={`/${space.id}`} 
+                  title={space.name ?? 'Server'} 
+                  style={getRailItemStyle(active)}
+                  className="rail-nav-item"
+                >
+                  {initials(space.name ?? 'Server')}
+                  {active && <span className="active-dot-left" />}
+                  {hasUnread && (
+                    <span aria-hidden style={{
+                      position: 'absolute',
+                      right: 2,
+                      top: 2,
+                      width: 6,
+                      height: 6,
+                      borderRadius: '50%',
+                      background: 'var(--accent)',
+                      boxShadow: '0 0 0 2px var(--sidebar)',
+                    }} />
+                  )}
+                </Link>
+              )
+            })}
+          </div>
 
-          <button onClick={onCreate} disabled={busy} title="New server" style={railItem(false, { background: '#1c1c1c', color: '#6ee7b7', border: '1px dashed #333', fontSize: 22, lineHeight: 1, fontWeight: 400 })}>
-            +
+          {/* Add Server Button */}
+          <button 
+            onClick={onCreate} 
+            disabled={busy} 
+            title="Create Team" 
+            style={getRailItemStyle(false, true)}
+            className="rail-nav-item plus-btn"
+          >
+            <span style={{ fontSize: 18, fontWeight: 300 }}>+</span>
           </button>
 
+          {/* Private personal space */}
           {privateSpace && (
-            <Link href={`/${privateSpace.id}`} title="Me" style={railItem(privateSpace.id === activeSpaceId)}>
+            <Link 
+              href={`/${privateSpace.id}`} 
+              title="Personal Space" 
+              style={getRailItemStyle(privateSpace.id === activeSpaceId)}
+              className="rail-nav-item"
+            >
               {initials(profile.display_name)}
+              {privateSpace.id === activeSpaceId && <span className="active-dot-left" />}
             </Link>
           )}
         </div>
 
+        {/* BOTTOM METRICS, PROFILE & SETTINGS */}
         <div
           style={{
-            borderTop: '1px solid #2a2a2a',
-            paddingTop: 10,
+            borderTop: '1px solid var(--border)',
+            paddingTop: 14,
             width: '100%',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            gap: 4,
+            gap: 12,
           }}
         >
-          <Link href="/settings" title="Profile settings" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, textDecoration: 'none' }}>
+          <ThemeToggle />
+          
+          <Link href="/settings" title="Profile Settings" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, textDecoration: 'none', width: '100%' }}>
             {profile.avatar_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={profile.avatar_url} alt="" style={{ width: 34, height: 34, borderRadius: '50%', objectFit: 'cover' }} />
+              <img src={profile.avatar_url} alt="" style={{ width: 28, height: 28, borderRadius: 8, border: pathname === '/settings' ? '2px solid var(--accent)' : '1px solid var(--border)', objectFit: 'cover', transition: 'all 0.15s' }} />
             ) : (
               <div
                 style={{
-                  width: 34,
-                  height: 34,
-                  borderRadius: '50%',
-                  background: pathname === '/settings' ? '#6366f1' : '#4f46e5',
-                  color: '#fff',
+                  width: 28,
+                  height: 28,
+                  borderRadius: 8,
+                  background: pathname === '/settings' ? 'var(--accent)' : 'var(--border-soft)',
+                  color: pathname === '/settings' ? '#fff' : 'var(--foreground)',
+                  border: '1px solid var(--border)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: 12,
-                  fontWeight: 600,
+                  fontSize: 10,
+                  fontWeight: 800,
+                  fontFamily: 'var(--font-mono)',
+                  transition: 'all 0.15s',
                 }}
               >
                 {initials(profile.display_name)}
               </div>
             )}
             <div
-              style={{ fontSize: 10, color: pathname === '/settings' ? '#c7c9ff' : '#aaa', maxWidth: 64, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+              style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: pathname === '/settings' ? 'var(--accent)' : 'var(--muted)', maxWidth: 56, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textTransform: 'uppercase', fontWeight: 600 }}
               title={profile.display_name ?? ''}
             >
               {profile.display_name}
             </div>
           </Link>
+
           <form action={signOut}>
-            <button style={{ background: 'none', border: 'none', color: '#777', cursor: 'pointer', fontSize: 10 }}>Log out</button>
+            <button style={{ background: 'none', border: 'none', color: 'var(--faint)', cursor: 'pointer', fontSize: 9, fontFamily: 'var(--font-mono)', textTransform: 'uppercase', fontWeight: 600 }}>
+              Exit
+            </button>
           </form>
         </div>
       </nav>
 
-      {/* DM panel — slides in beside the rail, WhatsApp/Discord-style list of chats. */}
+      {/* DM SLIDING DRAWER */}
       {dmOpen && (
         <>
-          <div onClick={() => { setDmOpen(false); setPicking(false) }} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
+          <div onClick={() => { setDmOpen(false); setPicking(false) }} style={{ position: 'fixed', inset: 0, zIndex: 40, background: 'rgba(0, 0, 0, 0.15)', backdropFilter: 'blur(2px)' }} />
           <div
             style={{
               position: 'fixed',
               left: 72,
               top: 0,
               bottom: 0,
-              width: 300,
+              width: 280,
               zIndex: 41,
-              background: '#141414',
-              borderRight: '1px solid #262626',
+              background: 'var(--sidebar)',
+              borderRight: '1px solid var(--border)',
               display: 'flex',
               flexDirection: 'column',
-              boxShadow: '8px 0 24px rgba(0,0,0,0.4)',
+              boxShadow: '4px 0 20px var(--shadow)',
+              animation: 'drawer-slide 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards',
             }}
           >
-            <div style={{ padding: '16px 18px 12px', borderBottom: '1px solid #262626', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ color: '#fff', fontWeight: 700, fontSize: 15 }}>{picking ? 'New message' : 'Direct messages'}</span>
-              <button onClick={() => (picking ? setPicking(false) : setDmOpen(false))} title="Close" style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', fontSize: 18, lineHeight: 1 }}>
+            <div style={{ padding: '16px', borderBottom: '1px solid var(--border-soft)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ color: 'var(--foreground)', fontWeight: 700, fontSize: 13, fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                {picking ? 'New Chat' : 'Messages'}
+              </span>
+              <button 
+                onClick={() => (picking ? setPicking(false) : setDmOpen(false))} 
+                title="Close" 
+                style={{ background: 'var(--border-soft)', border: '1px solid var(--border)', color: 'var(--muted)', cursor: 'pointer', borderRadius: 4, width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12 }}
+              >
                 {picking ? '‹' : '×'}
               </button>
             </div>
 
             {picking ? (
-              <div style={{ flex: 1, overflowY: 'auto', padding: 8, display: 'flex', flexDirection: 'column' }}>
-                {/* Add by exact @username — reaches anyone, not just shared-space people. */}
-                <div style={{ margin: '4px 4px 6px' }}>
+              <div style={{ flex: 1, overflowY: 'auto', padding: 12, display: 'flex', flexDirection: 'column' }}>
+                <div style={{ marginBottom: 12 }}>
                   <div style={{ display: 'flex', gap: 6 }}>
-                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', background: '#0f0f0f', border: '1px solid #333', borderRadius: 8, paddingLeft: 10 }}>
-                      <span style={{ color: '#666', fontSize: 13 }}>@</span>
+                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', background: 'var(--background)', border: '1px solid var(--border)', borderRadius: 6, paddingLeft: 8 }}>
+                      <span style={{ color: 'var(--muted)', fontSize: 11, fontFamily: 'var(--font-mono)' }}>@</span>
                       <input
                         autoFocus
                         value={handleQuery}
                         onChange={(e) => { setHandleQuery(e.target.value.replace(/^@/, '')); setHandleErr(null) }}
                         onKeyDown={(e) => e.key === 'Enter' && dmByUsername()}
                         placeholder="username"
-                        style={{ flex: 1, minWidth: 0, background: 'transparent', border: 'none', outline: 'none', padding: '8px 6px', color: '#ededed', fontSize: 13 }}
+                        style={{ flex: 1, minWidth: 0, background: 'transparent', border: 'none', outline: 'none', padding: '6px 4px', color: 'var(--foreground)', fontSize: 12 }}
                       />
                     </div>
-                    <button onClick={dmByUsername} disabled={startingDm || !handleQuery.trim()} style={{ background: '#4f46e5', color: '#fff', border: 'none', borderRadius: 8, padding: '0 14px', cursor: 'pointer', fontSize: 13, opacity: startingDm || !handleQuery.trim() ? 0.6 : 1 }}>
-                      Message
+                    <button onClick={dmByUsername} disabled={startingDm || !handleQuery.trim()} style={{ background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 6, padding: '0 10px', cursor: 'pointer', fontSize: 11, fontFamily: 'var(--font-mono)', textTransform: 'uppercase' }}>
+                      Add
                     </button>
                   </div>
-                  {handleErr && <div style={{ color: '#f87171', fontSize: 12, marginTop: 4, paddingLeft: 2 }}>{handleErr}</div>}
+                  {handleErr && <div style={{ color: 'var(--danger)', fontSize: 11, marginTop: 4, fontFamily: 'var(--font-mono)', paddingLeft: 2 }}>{handleErr}</div>}
                 </div>
-                <div style={{ fontSize: 11, color: '#666', textTransform: 'uppercase', letterSpacing: '0.06em', padding: '6px 6px 4px' }}>People in your teams</div>
+                
+                <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--faint)', textTransform: 'uppercase', letterSpacing: '0.06em', padding: '6px 2px 6px' }}>
+                  Team Members
+                </div>
                 <input
                   value={pickQuery}
                   onChange={(e) => setPickQuery(e.target.value)}
-                  placeholder="Search people…"
-                  style={{ background: '#0f0f0f', border: '1px solid #333', borderRadius: 8, padding: '8px 10px', color: '#ededed', fontSize: 13, margin: '0 4px 8px' }}
+                  placeholder="Filter by name..."
+                  style={{ background: 'var(--background)', border: '1px solid var(--border-soft)', borderRadius: 6, padding: '6px 8px', color: 'var(--foreground)', fontSize: 12, outline: 'none', marginBottom: 8 }}
                 />
-                {people === null && <div style={{ color: '#666', fontSize: 13, padding: '12px', textAlign: 'center' }}>loading…</div>}
-                {people?.length === 0 && <div style={{ color: '#666', fontSize: 13, padding: '12px', textAlign: 'center' }}>No one to message yet. Join or create a team first.</div>}
-                {people
-                  ?.filter((p) => {
-                    const q = pickQuery.trim().toLowerCase()
-                    return !q || p.name.toLowerCase().includes(q) || (p.username ?? '').includes(q)
-                  })
-                  .map((p) => (
-                    <button
-                      key={p.id}
-                      onClick={() => beginDm(p.id)}
-                      disabled={startingDm}
-                      style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '8px 10px', borderRadius: 8, border: 'none', background: 'transparent', color: '#ededed', cursor: 'pointer', textAlign: 'left' }}
-                    >
-                      {p.avatar ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={p.avatar} alt="" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
-                      ) : (
-                        <span style={{ width: 32, height: 32, borderRadius: '50%', background: '#333', color: '#ccc', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 600, flexShrink: 0 }}>{initials(p.name)}</span>
-                      )}
-                      <span style={{ minWidth: 0 }}>
-                        <span style={{ display: 'block', fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
-                        {p.username && <span style={{ display: 'block', fontSize: 11, color: '#777', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>@{p.username}</span>}
-                      </span>
-                    </button>
-                  ))}
+                
+                {people === null && <div style={{ color: 'var(--muted)', fontSize: 11, padding: '12px', textAlign: 'center', fontFamily: 'var(--font-mono)' }}>LOADING...</div>}
+                {people?.length === 0 && <div style={{ color: 'var(--muted)', fontSize: 11, padding: '12px', textAlign: 'center' }}>No team members found yet.</div>}
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {people
+                    ?.filter((p) => {
+                      const q = pickQuery.trim().toLowerCase()
+                      return !q || p.name.toLowerCase().includes(q) || (p.username ?? '').includes(q)
+                    })
+                    .map((p) => (
+                      <button
+                        key={p.id}
+                        onClick={() => beginDm(p.id)}
+                        disabled={startingDm}
+                        style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '6px 8px', borderRadius: 6, border: 'none', background: 'transparent', color: 'var(--foreground)', cursor: 'pointer', textAlign: 'left', transition: 'background 0.15s ease' }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = 'var(--border-soft)'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                      >
+                        {p.avatar ? (
+                          <img src={p.avatar} alt="" style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                        ) : (
+                          <span style={{ width: 24, height: 24, borderRadius: '50%', background: 'var(--border-soft)', color: 'var(--muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, flexShrink: 0 }}>{initials(p.name)}</span>
+                        )}
+                        <span style={{ minWidth: 0, flex: 1 }}>
+                          <span style={{ display: 'block', fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
+                          {p.username && <span style={{ display: 'block', fontSize: 10, color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: 'var(--font-mono)' }}>@{p.username}</span>}
+                        </span>
+                      </button>
+                    ))}
+                </div>
               </div>
             ) : (
-            <div style={{ flex: 1, overflowY: 'auto', padding: 8 }}>
-              <button
-                onClick={openPicker}
-                style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '9px 10px', borderRadius: 8, border: 'none', background: 'transparent', color: '#6ee7b7', cursor: 'pointer', fontSize: 14, marginBottom: 4 }}
-              >
-                <span style={{ width: 32, height: 32, borderRadius: '50%', background: '#1c2b22', color: '#6ee7b7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>+</span>
-                New message
-              </button>
-              {dms.length === 0 && <div style={{ color: '#666', fontSize: 13, padding: '20px 12px', textAlign: 'center' }}>No conversations yet.</div>}
-              {dms.map((d) => {
-                const active = d.id === activeSpaceId
-                const label = d.name ?? 'Direct message'
-                const unreadN = unreadMap[d.id] || 0
-                return (
-                  <button
-                    key={d.id}
-                    onClick={() => openDm(d.id)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 10,
-                      width: '100%',
-                      padding: '9px 10px',
-                      borderRadius: 8,
-                      border: 'none',
-                      background: active ? '#232338' : 'transparent',
-                      color: '#ededed',
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                    }}
-                  >
-                    {d.avatar ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={d.avatar} alt="" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
-                    ) : (
-                      <span
+              <div style={{ flex: 1, overflowY: 'auto', padding: 8 }}>
+                <button
+                  onClick={openPicker}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px', borderRadius: 6, border: 'none', background: 'var(--accent-soft)', color: 'var(--accent)', cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-mono)', textTransform: 'uppercase', marginBottom: 8 }}
+                >
+                  <span style={{ width: 24, height: 24, borderRadius: 4, background: 'var(--accent)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0 }}>+</span>
+                  New Message
+                </button>
+                
+                {dms.length === 0 && (
+                  <div style={{ color: 'var(--faint)', fontSize: 11, padding: '20px 12px', textAlign: 'center', fontFamily: 'var(--font-mono)' }}>
+                    NO CONVERSATIONS
+                  </div>
+                )}
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {dms.map((d) => {
+                    const active = d.id === activeSpaceId
+                    const label = d.name ?? 'Direct message'
+                    const unreadN = unreadMap[d.id] || 0
+                    return (
+                      <button
+                        key={d.id}
+                        onClick={() => openDm(d.id)}
                         style={{
-                          width: 36,
-                          height: 36,
-                          borderRadius: '50%',
-                          background: '#333',
-                          color: '#ccc',
                           display: 'flex',
                           alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: 13,
-                          fontWeight: 600,
-                          flexShrink: 0,
+                          gap: 10,
+                          width: '100%',
+                          padding: '8px',
+                          borderRadius: 6,
+                          border: 'none',
+                          background: active ? 'var(--accent-soft)' : 'transparent',
+                          color: 'var(--foreground)',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          transition: 'background 0.15s ease'
                         }}
+                        onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = 'var(--border-soft)' }}
+                        onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = 'transparent' }}
                       >
-                        {initials(label)}
-                      </span>
-                    )}
-                    <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: unreadN > 0 ? 700 : 500, color: unreadN > 0 ? '#fff' : '#ededed', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
-                    {unreadN > 0 && (
-                      <span style={{ minWidth: 18, height: 18, padding: '0 5px', borderRadius: 9, background: '#4f46e5', color: '#fff', fontSize: 11, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        {unreadN > 99 ? '99+' : unreadN}
-                      </span>
-                    )}
-                  </button>
-                )
-              })}
-            </div>
+                        {d.avatar ? (
+                          <img src={d.avatar} alt="" style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                        ) : (
+                          <span
+                            style={{
+                              width: 28,
+                              height: 28,
+                              borderRadius: '50%',
+                              background: 'var(--border-soft)',
+                              color: 'var(--muted)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: 11,
+                              fontWeight: 700,
+                              fontFamily: 'var(--font-mono)',
+                              flexShrink: 0,
+                            }}
+                          >
+                            {initials(label)}
+                          </span>
+                        )}
+                        <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: unreadN > 0 ? 700 : 500, color: unreadN > 0 ? 'var(--foreground)' : 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
+                        <Badge n={unreadN} />
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
             )}
           </div>
         </>
       )}
+
+      {/* Hover & Active Styles Injector */}
+      <style>{`
+        .rail-nav-item:hover {
+          border-radius: 10px !important;
+          background: var(--accent) !important;
+          color: #fff !important;
+          box-shadow: 0 4px 12px var(--shadow-lg);
+        }
+        .rail-nav-item:hover .active-dot-left,
+        .rail-nav-item:active .active-dot-left {
+          height: 16px !important;
+        }
+        .rail-nav-item.plus-btn:hover {
+          background: var(--accent-soft) !important;
+          color: var(--accent) !important;
+          border-style: solid !important;
+        }
+        .active-dot-left {
+          position: absolute;
+          left: -4px;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 4px;
+          height: 8px;
+          background: var(--accent);
+          border-radius: 0 4px 4px 0;
+          transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes drawer-slide {
+          from { transform: translateX(-12px); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+      `}</style>
     </>
   )
 }

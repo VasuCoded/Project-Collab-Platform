@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
+import { useUI } from "@/components/ui-provider";
 
 // Serverless voice/video: a full-mesh of RTCPeerConnections with Supabase
 // Realtime (broadcast + presence) as the signaling channel. No media server, no
@@ -40,10 +41,10 @@ function Tile({ name, stream, muted, you }: { name: string; stream: MediaStream 
     if (ref.current && stream) ref.current.srcObject = stream;
   }, [stream]);
   return (
-    <div style={{ position: "relative", background: "#141414", border: "1px solid #262626", borderRadius: 12, overflow: "hidden", aspectRatio: "16 / 10", display: "flex", alignItems: "center", justifyContent: "center" }}>
+    <div style={{ position: "relative", background: "var(--card)", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden", aspectRatio: "16 / 10", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 12px var(--shadow)" }}>
       <video ref={ref} autoPlay playsInline muted={muted} style={{ width: "100%", height: "100%", objectFit: "cover", display: hasVideo ? "block" : "none" }} />
       {!hasVideo && (
-        <div style={{ width: 64, height: 64, borderRadius: "50%", background: "#4f46e5", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, fontWeight: 700 }}>{initials(name)}</div>
+        <div style={{ width: 64, height: 64, borderRadius: "50%", background: "var(--accent)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, fontWeight: 700 }}>{initials(name)}</div>
       )}
       <span style={{ position: "absolute", left: 8, bottom: 8, background: "rgba(0,0,0,0.6)", color: "#fff", fontSize: 12, padding: "2px 8px", borderRadius: 6 }}>
         {name}
@@ -55,6 +56,7 @@ function Tile({ name, stream, muted, you }: { name: string; stream: MediaStream 
 
 export function VoiceChannel({ channelId, channelName, me, meName }: { channelId: string; channelName: string; me: string; meName: string }) {
   const supabase = useMemo(() => createClient(), []);
+  const ui = useUI();
   const [joined, setJoined] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [micOn, setMicOn] = useState(true);
@@ -143,7 +145,7 @@ export function VoiceChannel({ channelId, channelName, me, meName }: { channelId
       stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: withCam });
     } catch (e) {
       setConnecting(false);
-      alert(e instanceof Error ? `Could not access mic/camera: ${e.message}` : "Could not access mic/camera");
+      ui.alert(e instanceof Error ? `Could not access mic/camera: ${e.message}` : "Could not access mic/camera", 'Media Error');
       return;
     }
     localRef.current = stream;
@@ -221,24 +223,24 @@ export function VoiceChannel({ channelId, channelName, me, meName }: { channelId
   const hasCamTrack = !!localStream?.getVideoTracks().length;
 
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", height: "100%", minWidth: 0, background: "#0a0a0a", fontFamily: "system-ui, sans-serif" }}>
-      <div style={{ padding: "12px 20px", borderBottom: "1px solid #262626", display: "flex", alignItems: "baseline", gap: 12 }}>
-        <span style={{ fontWeight: 700, color: "#fff" }}>🔊 {channelName}</span>
-        {joined && <span style={{ fontSize: 12, color: "#777" }}>{peers.length + 1} in call</span>}
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", height: "100%", minWidth: 0, background: "var(--background)", fontFamily: "var(--font-sans)", transition: "background-color 0.15s ease" }}>
+      <div style={{ padding: "12px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "baseline", gap: 12 }}>
+        <span style={{ fontWeight: 700, color: "var(--foreground)" }}>🔊 {channelName}</span>
+        {joined && <span style={{ fontSize: 12, color: "var(--muted)" }}>{peers.length + 1} in call</span>}
       </div>
 
       {!joined ? (
         <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16 }}>
-          <div style={{ color: "#ccc", fontSize: 16 }}>Ready to join {channelName}?</div>
+          <div style={{ color: "var(--foreground)", fontSize: 16, fontWeight: 600 }}>Ready to join {channelName}?</div>
           <div style={{ display: "flex", gap: 10 }}>
-            <button onClick={() => join(false)} disabled={connecting} style={{ background: "#4f46e5", color: "#fff", border: "none", borderRadius: 10, padding: "10px 20px", fontSize: 14, cursor: "pointer" }}>
+            <button onClick={() => join(false)} disabled={connecting} style={{ background: "var(--accent)", color: "#fff", border: "none", borderRadius: 10, padding: "10px 20px", fontSize: 14, cursor: "pointer", fontWeight: 600, transition: "background-color 0.15s ease" }} onMouseEnter={(e) => e.currentTarget.style.background = "var(--accent-hover)"} onMouseLeave={(e) => e.currentTarget.style.background = "var(--accent)"}>
               {connecting ? "…" : "Join with mic"}
             </button>
-            <button onClick={() => join(true)} disabled={connecting} style={{ background: "#232338", color: "#c7c9ff", border: "1px solid #333", borderRadius: 10, padding: "10px 20px", fontSize: 14, cursor: "pointer" }}>
+            <button onClick={() => join(true)} disabled={connecting} style={{ background: "var(--accent-soft)", color: "var(--accent)", border: "1px solid var(--border)", borderRadius: 10, padding: "10px 20px", fontSize: 14, cursor: "pointer", fontWeight: 600, transition: "all 0.15s ease" }} onMouseEnter={(e) => e.currentTarget.style.background = "var(--border)"} onMouseLeave={(e) => e.currentTarget.style.background = "var(--accent-soft)"}>
               Join with camera
             </button>
           </div>
-          <div style={{ color: "#666", fontSize: 12 }}>Peer-to-peer · best for small groups</div>
+          <div style={{ color: "var(--faint)", fontSize: 12 }}>Peer-to-peer · best for small groups</div>
         </div>
       ) : (
         <>
@@ -248,10 +250,10 @@ export function VoiceChannel({ channelId, channelName, me, meName }: { channelId
               <Tile key={p.id} name={p.name} stream={p.stream} />
             ))}
           </div>
-          <div style={{ display: "flex", gap: 10, justifyContent: "center", padding: "14px 20px", borderTop: "1px solid #262626" }}>
+          <div style={{ display: "flex", gap: 10, justifyContent: "center", padding: "14px 20px", borderTop: "1px solid var(--border)" }}>
             <button onClick={toggleMic} style={ctlBtn(micOn)}>{micOn ? "🎙 Mute" : "🔇 Unmute"}</button>
             {hasCamTrack && <button onClick={toggleCam} style={ctlBtn(camOn)}>{camOn ? "📷 Camera off" : "📷 Camera on"}</button>}
-            <button onClick={leave} style={{ background: "#b91c1c", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontSize: 14, cursor: "pointer" }}>
+            <button onClick={leave} style={{ background: "var(--danger)", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontSize: 14, cursor: "pointer", fontWeight: 600, transition: "background-color 0.15s ease" }} onMouseEnter={(e) => e.currentTarget.style.background = "var(--accent-hover)"} onMouseLeave={(e) => e.currentTarget.style.background = "var(--danger)"}>
               Leave
             </button>
           </div>
@@ -263,12 +265,14 @@ export function VoiceChannel({ channelId, channelName, me, meName }: { channelId
 
 function ctlBtn(active: boolean): React.CSSProperties {
   return {
-    background: active ? "#232338" : "#2a2a2a",
-    color: active ? "#c7c9ff" : "#ddd",
-    border: "1px solid #333",
+    background: active ? "var(--accent-soft)" : "var(--border-soft)",
+    color: active ? "var(--accent)" : "var(--foreground)",
+    border: "1px solid var(--border)",
     borderRadius: 10,
     padding: "10px 18px",
     fontSize: 14,
     cursor: "pointer",
+    fontWeight: 600,
+    transition: "all 0.15s ease",
   };
 }

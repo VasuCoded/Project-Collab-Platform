@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { useUI } from "@/components/ui-provider";
 
 type Reminder = { id: string; title: string; remind_at: string | null; done: boolean; created_by: string; created_at: string };
 
@@ -22,6 +23,7 @@ function whenLabel(iso: string | null): { text: string; overdue: boolean } | nul
 
 export function RemindersChannel({ channelId, channelName, me }: { channelId: string; channelName: string; me: string }) {
   const supabase = useMemo(() => createClient(), []);
+  const ui = useUI();
   const [items, setItems] = useState<Reminder[]>([]);
   const [loading, setLoading] = useState(true);
   const [title, setTitle] = useState("");
@@ -76,9 +78,10 @@ export function RemindersChannel({ channelId, channelName, me }: { channelId: st
       .single();
     setAdding(false);
     if (error) {
-      alert(error.message);
+      ui.alert(error.message, 'Error');
       return;
     }
+    ui.toast('Reminder added!', 'success');
     setItems((prev) => (prev.some((x) => x.id === data.id) ? prev : [...prev, data as Reminder]));
     setTitle("");
     setWhen("");
@@ -90,7 +93,7 @@ export function RemindersChannel({ channelId, channelName, me }: { channelId: st
     const { error } = await supabase.from("reminders").update({ done: !r.done }).eq("id", r.id);
     if (error) {
       setItems(before);
-      alert(error.message);
+      ui.alert(error.message, 'Error');
     }
   }
 
@@ -100,7 +103,7 @@ export function RemindersChannel({ channelId, channelName, me }: { channelId: st
     const { error } = await supabase.from("reminders").delete().eq("id", id);
     if (error) {
       setItems(before);
-      alert(error.message);
+      ui.alert(error.message, 'Error');
     }
   }
 
@@ -114,41 +117,41 @@ export function RemindersChannel({ channelId, channelName, me }: { channelId: st
   });
 
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", height: "100%", minWidth: 0, background: "#0a0a0a", fontFamily: "system-ui, sans-serif" }}>
-      <div style={{ padding: "12px 20px", borderBottom: "1px solid #262626", display: "flex", alignItems: "center", gap: 12 }}>
-        <span style={{ fontWeight: 700, color: "#fff" }}>⏰ {channelName}</span>
-        <span style={{ fontSize: 12, color: "#777" }}>{items.filter((r) => !r.done).length} open</span>
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", height: "100%", minWidth: 0, background: "var(--background)", fontFamily: "var(--font-sans)", transition: "background-color 0.15s ease" }}>
+      <div style={{ padding: "12px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 12 }}>
+        <span style={{ fontWeight: 700, color: "var(--foreground)" }}>⏰ {channelName}</span>
+        <span style={{ fontSize: 12, color: "var(--muted)" }}>{items.filter((r) => !r.done).length} open</span>
       </div>
 
-      <form onSubmit={add} style={{ display: "flex", gap: 8, padding: "12px 20px", borderBottom: "1px solid #1c1c1c", flexWrap: "wrap" }}>
+      <form onSubmit={add} style={{ display: "flex", gap: 8, padding: "12px 20px", borderBottom: "1px solid var(--border)", flexWrap: "wrap" }}>
         <input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Remind the team to…"
-          style={{ flex: "1 1 240px", minWidth: 160, background: "#141414", border: "1px solid #333", borderRadius: 8, padding: "8px 12px", color: "#ededed", fontSize: 14 }}
+          style={{ flex: "1 1 240px", minWidth: 160, background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, padding: "8px 12px", color: "var(--foreground)", fontSize: 14, outline: "none" }}
         />
-        <input type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} title="When" style={{ background: "#141414", border: "1px solid #333", borderRadius: 8, padding: "8px 10px", color: when ? "#ededed" : "#888", fontSize: 13, colorScheme: "dark" }} />
-        <button type="submit" disabled={adding || !title.trim()} style={{ background: "#4f46e5", color: "#fff", border: "none", borderRadius: 8, padding: "8px 16px", cursor: "pointer", fontSize: 14, opacity: adding || !title.trim() ? 0.6 : 1 }}>
+        <input type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} title="When" style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, padding: "8px 10px", color: when ? "var(--foreground)" : "var(--muted)", fontSize: 13, outline: "none" }} />
+        <button type="submit" disabled={adding || !title.trim()} style={{ background: "var(--accent)", color: "#fff", border: "none", borderRadius: 8, padding: "8px 16px", cursor: "pointer", fontSize: 14, fontWeight: 600, opacity: adding || !title.trim() ? 0.6 : 1, transition: "background-color 0.15s ease" }} onMouseEnter={(e) => e.currentTarget.style.background = "var(--accent-hover)"} onMouseLeave={(e) => e.currentTarget.style.background = "var(--accent)"}>
           {adding ? "…" : "Add"}
         </button>
       </form>
 
       <div style={{ flex: 1, overflowY: "auto", padding: 12 }}>
-        {loading && <div style={{ color: "#555", fontSize: 13, padding: 10 }}>loading…</div>}
-        {!loading && sorted.length === 0 && <div style={{ color: "#5a5a5a", fontSize: 14, textAlign: "center", marginTop: 32 }}>No reminders yet.</div>}
+        {loading && <div style={{ color: "var(--faint)", fontSize: 13, padding: 10 }}>loading…</div>}
+        {!loading && sorted.length === 0 && <div style={{ color: "var(--faint)", fontSize: 14, textAlign: "center", marginTop: 32 }}>No reminders yet.</div>}
         <div style={{ display: "flex", flexDirection: "column", gap: 6, maxWidth: 720, margin: "0 auto" }}>
           {sorted.map((r) => {
             const w = whenLabel(r.remind_at);
             return (
-              <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", background: "#141414", border: "1px solid #262626", borderRadius: 10, borderLeft: `3px solid ${r.done ? "#333" : w?.overdue ? "#ef4444" : "#4f46e5"}` }}>
-                <button onClick={() => toggle(r)} title={r.done ? "Mark not done" : "Mark done"} style={{ width: 20, height: 20, borderRadius: "50%", border: `2px solid ${r.done ? "#22c55e" : "#555"}`, background: r.done ? "#22c55e" : "transparent", color: "#0a0a0a", cursor: "pointer", flexShrink: 0, fontSize: 12, lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", background: "var(--card)", border: "1px solid var(--border)", borderRadius: 10, boxShadow: "0 2px 4px var(--shadow)", borderLeft: `3px solid ${r.done ? "var(--border)" : w?.overdue ? "var(--danger)" : "var(--accent)"}`, transition: "transform 0.15s ease" }} onMouseEnter={(e) => e.currentTarget.style.transform = "translateY(-1px)"} onMouseLeave={(e) => e.currentTarget.style.transform = "translateY(0px)"}>
+                <button onClick={() => toggle(r)} title={r.done ? "Mark not done" : "Mark done"} style={{ width: 20, height: 20, borderRadius: "50%", border: `2px solid ${r.done ? "var(--success)" : "var(--border)"}`, background: r.done ? "var(--success)" : "transparent", color: "var(--card)", cursor: "pointer", flexShrink: 0, fontSize: 12, lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
                   {r.done ? "✓" : ""}
                 </button>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ color: r.done ? "#777" : "#ededed", fontSize: 14, textDecoration: r.done ? "line-through" : "none", wordBreak: "break-word" }}>{r.title}</div>
-                  {w && <div style={{ color: r.done ? "#555" : w.overdue ? "#f87171" : "#8a8a8a", fontSize: 12, marginTop: 2 }}>{w.text}</div>}
+                  <div style={{ color: r.done ? "var(--faint)" : "var(--foreground)", fontSize: 14, textDecoration: r.done ? "line-through" : "none", wordBreak: "break-word" }}>{r.title}</div>
+                  {w && <div style={{ color: r.done ? "var(--faint)" : w.overdue ? "var(--danger)" : "var(--muted)", fontSize: 12, marginTop: 2 }}>{w.text}</div>}
                 </div>
-                <button onClick={() => remove(r.id)} title="Delete" style={{ background: "none", border: "none", color: "#a15", cursor: "pointer", fontSize: 14, flexShrink: 0 }}>
+                <button onClick={() => remove(r.id)} title="Delete" style={{ background: "none", border: "none", color: "var(--danger)", cursor: "pointer", fontSize: 14, flexShrink: 0 }}>
                   ✕
                 </button>
               </div>

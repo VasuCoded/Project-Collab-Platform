@@ -67,55 +67,55 @@ export function ProfileSettings({ userId, initial }: { userId: string; initial: 
   }
 
   return (
-    <div style={{ flex: 1, overflowY: "auto", background: "#0a0a0a", fontFamily: "system-ui, sans-serif" }}>
+    <div style={{ flex: 1, overflowY: "auto", background: "var(--background)", fontFamily: "var(--font-sans)", transition: "background-color 0.15s ease" }}>
       <div style={{ maxWidth: 520, margin: "0 auto", padding: "32px 28px 64px" }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: "#fff", margin: "0 0 24px" }}>Profile</h1>
+        <h1 style={{ fontSize: 24, fontWeight: 700, color: "var(--foreground)", margin: "0 0 24px", fontFamily: "var(--display-font)" }}>Profile</h1>
 
         <form onSubmit={save} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
             {preview ? (
               <img src={preview} alt="" style={{ width: 72, height: 72, borderRadius: "50%", objectFit: "cover" }} />
             ) : (
-              <div style={{ width: 72, height: 72, borderRadius: "50%", background: "#4f46e5", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, fontWeight: 700 }}>
+              <div style={{ width: 72, height: 72, borderRadius: "50%", background: "var(--accent)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, fontWeight: 700 }}>
                 {initials(name)}
               </div>
             )}
-            <label style={{ background: "#232338", color: "#c7c9ff", borderRadius: 8, padding: "8px 14px", fontSize: 13, cursor: "pointer" }}>
+            <label style={{ background: "var(--accent-soft)", color: "var(--accent)", borderRadius: 8, padding: "8px 14px", fontSize: 13, fontWeight: 600, cursor: "pointer", transition: "all 0.15s ease" }} onMouseEnter={(e) => { e.currentTarget.style.background = "var(--border)" }} onMouseLeave={(e) => { e.currentTarget.style.background = "var(--accent-soft)" }}>
               Change avatar
               <input type="file" accept="image/*" onChange={(e) => pickFile(e.target.files?.[0] ?? null)} style={{ display: "none" }} />
             </label>
           </div>
 
           <label style={{ display: "block" }}>
-            <span style={{ display: "block", fontSize: 13, color: "#888", marginBottom: 6 }}>Username</span>
-            <div style={{ display: "flex", alignItems: "center", background: "#141414", border: "1px solid #333", borderRadius: 8, paddingLeft: 12 }}>
-              <span style={{ color: "#666", fontSize: 14 }}>@</span>
+            <span style={{ display: "block", fontSize: 13, color: "var(--muted)", marginBottom: 6 }}>Username</span>
+            <div style={{ display: "flex", alignItems: "center", background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, paddingLeft: 12 }}>
+              <span style={{ color: "var(--faint)", fontSize: 14 }}>@</span>
               <input
                 value={username}
                 onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))}
                 maxLength={20}
                 placeholder="handle"
-                style={{ ...field, background: "transparent", border: "none", paddingLeft: 4 }}
+                style={{ ...field, background: "transparent", border: "none", paddingLeft: 4, outline: "none" }}
               />
             </div>
-            <span style={{ display: "block", fontSize: 11, color: "#666", marginTop: 4 }}>Lowercase letters, numbers, underscore. People can DM you by this.</span>
+            <span style={{ display: "block", fontSize: 11, color: "var(--faint)", marginTop: 4 }}>Lowercase letters, numbers, underscore. People can DM you by this.</span>
           </label>
 
           <label style={{ display: "block" }}>
-            <span style={{ display: "block", fontSize: 13, color: "#888", marginBottom: 6 }}>Display name</span>
+            <span style={{ display: "block", fontSize: 13, color: "var(--muted)", marginBottom: 6 }}>Display name</span>
             <input value={name} onChange={(e) => setName(e.target.value)} style={field} />
           </label>
 
           <label style={{ display: "block" }}>
-            <span style={{ display: "block", fontSize: 13, color: "#888", marginBottom: 6 }}>What you&apos;re working on</span>
+            <span style={{ display: "block", fontSize: 13, color: "var(--muted)", marginBottom: 6 }}>What you&apos;re working on</span>
             <input value={status} onChange={(e) => setStatus(e.target.value)} placeholder="e.g. shipping the desk v2" maxLength={120} style={field} />
           </label>
 
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            <button type="submit" disabled={busy} style={{ background: "#4f46e5", color: "#fff", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 14, cursor: "pointer", opacity: busy ? 0.6 : 1 }}>
+            <button type="submit" disabled={busy} style={{ background: "var(--accent)", color: "#fff", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 14, fontWeight: 600, cursor: "pointer", opacity: busy ? 0.6 : 1, transition: "background-color 0.15s ease" }} onMouseEnter={(e) => e.currentTarget.style.background = "var(--accent-hover)"} onMouseLeave={(e) => e.currentTarget.style.background = "var(--accent)"}>
               {busy ? "Saving…" : "Save changes"}
             </button>
-            {msg && <span style={{ fontSize: 13, color: msg.ok ? "#6ee7b7" : "#f87171" }}>{msg.text}</span>}
+            {msg && <span style={{ fontSize: 13, color: msg.ok ? "var(--success)" : "var(--danger)", fontWeight: 600 }}>{msg.text}</span>}
           </div>
         </form>
       </div>
@@ -125,10 +125,11 @@ export function ProfileSettings({ userId, initial }: { userId: string; initial: 
 
 const field: React.CSSProperties = {
   width: "100%",
-  background: "#141414",
-  border: "1px solid #333",
+  background: "var(--card)",
+  border: "1px solid var(--border)",
   borderRadius: 8,
   padding: "10px 12px",
-  color: "#ededed",
+  color: "var(--foreground)",
   fontSize: 14,
+  outline: "none",
 };

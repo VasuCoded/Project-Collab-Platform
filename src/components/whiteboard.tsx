@@ -27,7 +27,7 @@ const Excalidraw = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "#888", background: "#121212" }}>
+      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)", background: "var(--background)" }}>
         Loading canvas…
       </div>
     ),
@@ -45,6 +45,25 @@ export function Whiteboard({ channelId, channelName, me, meName }: { channelId: 
   const supabase = useMemo(() => createClient(), []);
   const [ready, setReady] = useState(false);
   const [here, setHere] = useState(1);
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+
+  // Sync theme with HTML data-theme attribute
+  useEffect(() => {
+    const updateTheme = () => {
+      const currentTheme = (document.documentElement.getAttribute('data-theme') || 'light') as 'light' | 'dark';
+      setTheme(currentTheme);
+    };
+    updateTheme();
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.attributeName === 'data-theme') {
+          updateTheme();
+        }
+      });
+    });
+    observer.observe(document.documentElement, { attributes: true });
+    return () => observer.disconnect();
+  }, []);
 
   const initialElements = useRef<readonly El[]>([]);
   const apiRef = useRef<ExcalidrawApi | null>(null);
@@ -160,10 +179,10 @@ export function Whiteboard({ channelId, channelName, me, meName }: { channelId: 
   }
 
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", height: "100%", minWidth: 0, fontFamily: "system-ui, sans-serif" }}>
-      <div style={{ padding: "12px 20px", borderBottom: "1px solid #262626", display: "flex", alignItems: "baseline", gap: 12 }}>
-        <span style={{ fontWeight: 700, color: "#fff" }}>&#128393; {channelName}</span>
-        <span style={{ fontSize: 12, color: "#777" }}>{here} here &middot; live</span>
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", height: "100%", minWidth: 0, background: "var(--background)", fontFamily: "var(--font-sans)", transition: "background-color 0.15s ease" }}>
+      <div style={{ padding: "12px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "baseline", gap: 12 }}>
+        <span style={{ fontWeight: 700, color: "var(--foreground)" }}>&#128393; {channelName}</span>
+        <span style={{ fontSize: 12, color: "var(--muted)" }}>{here} here &middot; live</span>
       </div>
       <div style={{ flex: 1, minHeight: 0 }}>
         {ready && (
@@ -175,7 +194,7 @@ export function Whiteboard({ channelId, channelName, me, meName }: { channelId: 
             onChange={onChange}
             onPointerUpdate={onPointerUpdate}
             isCollaborating
-            theme="dark"
+            theme={theme}
           />
         )}
       </div>
