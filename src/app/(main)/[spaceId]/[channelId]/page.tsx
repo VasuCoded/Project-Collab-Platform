@@ -4,6 +4,7 @@ import { getCurrentUser, getProfile, getMyRole, getSpace, getDmPeers } from "@/l
 import { Chat } from "@/components/chat";
 import { CubicleChannel } from "@/components/cubicle-channel";
 import { Whiteboard } from "@/components/whiteboard";
+import { BoardChannel } from "@/components/board-channel";
 import { TaskBoard } from "@/components/task-board";
 import { DocsChannel } from "@/components/docs-channel";
 import { NotesChannel } from "@/components/notes-channel";
@@ -22,12 +23,15 @@ export default async function ChannelPage({ params }: { params: Promise<{ spaceI
   ]);
   if (!channel) notFound();
 
-  // text, cubicle, whiteboard and todo all need the profile.
-  if ((channel.type === "text" || channel.type === "cubicle" || channel.type === "whiteboard" || channel.type === "todo") && user) {
+  // text, cubicle, whiteboard, board and todo all need the profile.
+  if ((channel.type === "text" || channel.type === "cubicle" || channel.type === "whiteboard" || channel.type === "board" || channel.type === "todo") && user) {
     const profile = await getProfile(user.id); // cache hit: shared with the main layout
     const meName = profile?.display_name ?? "You";
     if (channel.type === "whiteboard") {
       return <Whiteboard channelId={channel.id} channelName={channel.name} me={user.id} meName={meName} />;
+    }
+    if (channel.type === "board") {
+      return <BoardChannel channelId={channel.id} channelName={channel.name} me={user.id} meName={meName} />;
     }
     if (channel.type === "todo") {
       return <TaskBoard spaceId={spaceId} channelId={channel.id} channelName={channel.name} me={user.id} />;
