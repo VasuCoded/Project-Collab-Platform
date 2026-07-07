@@ -1,11 +1,25 @@
 /* eslint-disable @next/next/no-img-element */
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useSyncExternalStore } from 'react'
 import { useRouter } from 'next/navigation'
 import { startDm } from '@/app/(main)/actions'
 import { useUI } from '@/components/ui-provider'
 import type { SpaceMember } from '@/lib/supabase/queries'
+
+const COLLAPSE_KEY = 'membersCollapsed'
+const collapseListeners = new Set<() => void>()
+function subscribeCollapse(cb: () => void) {
+  collapseListeners.add(cb)
+  return () => { collapseListeners.delete(cb) }
+}
+function readCollapsed() {
+  return localStorage.getItem(COLLAPSE_KEY) === '1'
+}
+function setCollapsedStore(v: boolean) {
+  localStorage.setItem(COLLAPSE_KEY, v ? '1' : '0')
+  collapseListeners.forEach((l) => l())
+}
 
 const ROLE_ORDER = ['owner', 'admin', 'moderator', 'member']
 const ROLE_LABEL: Record<string, string> = { owner: 'Owner', admin: 'Admins', moderator: 'Moderators', member: 'Members' }
@@ -18,6 +32,11 @@ export function MembersSidebar({ members, me }: { members: SpaceMember[]; me: st
   const router = useRouter()
   const ui = useUI()
   const [dmBusy, setDmBusy] = useState<string | null>(null)
+  const collapsed = useSyncExternalStore(subscribeCollapse, readCollapsed, () => false)
+
+  function toggle() {
+    setCollapsedStore(!collapsed)
+  }
 
   const groups = useMemo(() => {
     const g: Record<string, SpaceMember[]> = {}
@@ -36,6 +55,68 @@ export function MembersSidebar({ members, me }: { members: SpaceMember[]; me: st
       ui.alert(e instanceof Error ? e.message : 'Could not open DM', 'Error')
       setDmBusy(null)
     }
+  }
+
+  if (collapsed) {
+    return (
+      <aside style={{
+        width: 48,
+        flexShrink: 0,
+        borderLeft: '1px solid var(--border)',
+        background: 'var(--sidebar)',
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        padding: '20px 0',
+        gap: 12
+      }}>
+        <button
+          onClick={toggle}
+          title="Show members"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 26,
+            height: 26,
+            border: '1px solid var(--border)',
+            background: 'transparent',
+            color: 'var(--muted)',
+            cursor: 'pointer',
+            borderRadius: 7,
+            padding: 0
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--border-soft)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
+        </button>
+        <span style={{
+          background: 'var(--accent-soft)',
+          color: 'var(--accent)',
+          padding: '2px 7px',
+          borderRadius: 4,
+          fontSize: 10,
+          fontWeight: 700,
+          fontFamily: 'var(--font-mono)'
+        }}>
+          {members.length}
+        </span>
+        <span style={{
+          writingMode: 'vertical-rl',
+          fontSize: 9,
+          fontWeight: 700,
+          letterSpacing: '0.12em',
+          textTransform: 'uppercase',
+          color: 'var(--faint)',
+          fontFamily: 'var(--font-mono)',
+          marginTop: 2
+        }}>
+          Members
+        </span>
+      </aside>
+    )
   }
 
   return (
@@ -66,14 +147,37 @@ export function MembersSidebar({ members, me }: { members: SpaceMember[]; me: st
         justifyContent: 'space-between'
       }}>
         <span>Team Members</span>
-        <span style={{
-          background: 'var(--accent-soft)',
-          color: 'var(--accent)',
-          padding: '2px 8px',
-          borderRadius: 4,
-          fontSize: 10,
-        }}>
-          {members.length}
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{
+            background: 'var(--accent-soft)',
+            color: 'var(--accent)',
+            padding: '2px 8px',
+            borderRadius: 4,
+            fontSize: 10,
+          }}>
+            {members.length}
+          </span>
+          <button
+            onClick={toggle}
+            title="Collapse members"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 22,
+              height: 22,
+              border: 'none',
+              background: 'transparent',
+              color: 'var(--faint)',
+              cursor: 'pointer',
+              borderRadius: 6,
+              padding: 0
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--border-soft)' }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
+          </button>
         </span>
       </div>
 
