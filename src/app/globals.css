@@ -342,6 +342,13 @@ body {
   .grid-header-actions {
     border-left: none;
   }
+  .login-left {
+    display: none !important;
+  }
+  .login-right {
+    flex: 1 1 100% !important;
+    max-width: 100% !important;
+  }
 }
 
 .hero-container {

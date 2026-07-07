@@ -82,7 +82,7 @@ export default function LoginPage() {
       color: 'var(--foreground)',
     }}>
 
-      <div style={{
+      <div className="login-left" style={{
         flex: '0 0 50%',
         display: 'flex',
         flexDirection: 'column',
@@ -108,7 +108,7 @@ export default function LoginPage() {
         </p>
       </div>
 
-      <div style={{
+      <div className="login-right" style={{
         flex: '0 0 50%',
         height: '100dvh',
         display: 'flex',
