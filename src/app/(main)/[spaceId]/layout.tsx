@@ -46,7 +46,7 @@ export default async function SpaceLayout({
     <div style={{ display: 'flex', flex: 1, minWidth: 0, height: '100%' }}>
       <ChannelColumn spaceName={spaceName} spaceId={spaceId} channels={channels} canInvite={canInvite} canManage={canManage} isServer={space.type === 'server'} />
       <div style={{ flex: 1, minWidth: 0, display: 'flex' }}>{children}</div>
-      {space.type === 'server' && user && <MembersSidebar members={members} me={user.id} />}
+      {space.type === 'server' && user && <MembersSidebar members={members} me={user.id} spaceId={spaceId} myRole={role ?? 'member'} />}
     </div>
   )
 }

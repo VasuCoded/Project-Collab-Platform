@@ -3,9 +3,13 @@
 
 import { useMemo, useState, useSyncExternalStore } from 'react'
 import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
 import { startDm } from '@/app/(main)/actions'
 import { useUI } from '@/components/ui-provider'
+import { ContextMenu, type MenuItem } from '@/components/context-menu'
 import type { SpaceMember } from '@/lib/supabase/queries'
+
+const ASSIGNABLE = ['member', 'moderator', 'admin']
 
 const COLLAPSE_KEY = 'membersCollapsed'
 const collapseListeners = new Set<() => void>()
@@ -28,11 +32,14 @@ function initials(name: string) {
   return (name || '?').trim().slice(0, 2).toUpperCase() || '?'
 }
 
-export function MembersSidebar({ members, me }: { members: SpaceMember[]; me: string }) {
+export function MembersSidebar({ members, me, spaceId, myRole }: { members: SpaceMember[]; me: string; spaceId: string; myRole: string }) {
   const router = useRouter()
   const ui = useUI()
+  const supabase = useMemo(() => createClient(), [])
   const [dmBusy, setDmBusy] = useState<string | null>(null)
+  const [menu, setMenu] = useState<{ x: number; y: number; member: SpaceMember } | null>(null)
   const collapsed = useSyncExternalStore(subscribeCollapse, readCollapsed, () => false)
+  const canManage = myRole === 'owner' || myRole === 'admin'
 
   function toggle() {
     setCollapsedStore(!collapsed)
@@ -55,6 +62,37 @@ export function MembersSidebar({ members, me }: { members: SpaceMember[]; me: st
       ui.alert(e instanceof Error ? e.message : 'Could not open DM', 'Error')
       setDmBusy(null)
     }
+  }
+
+  async function changeRole(userId: string, role: string) {
+    const { error } = await supabase.rpc('set_member_role', { p_space_id: spaceId, p_user_id: userId, p_role: role })
+    if (error) { ui.alert(error.message, 'Error'); return }
+    ui.toast('Role updated.', 'success')
+    router.refresh()
+  }
+
+  async function removeMember(userId: string, name: string) {
+    const ok = await ui.confirm(`Remove ${name} from the team? This cannot be undone.`, 'Remove Member')
+    if (!ok) return
+    const { error } = await supabase.rpc('remove_member', { p_space_id: spaceId, p_user_id: userId })
+    if (error) { ui.alert(error.message, 'Error'); return }
+    ui.toast('Member removed.', 'success')
+    router.refresh()
+  }
+
+  function menuItems(m: SpaceMember): MenuItem[] {
+    const name = m.profiles?.display_name ?? 'Member'
+    const self = m.user_id === me
+    const items: MenuItem[] = []
+    if (!self) items.push({ label: `Message ${name}`, onClick: () => message(m.user_id) })
+    items.push({ label: 'Copy name', onClick: () => { navigator.clipboard?.writeText(name).then(() => ui.toast('Name copied.', 'success')).catch(() => {}) } })
+    if (canManage && !self && m.role !== 'owner') {
+      items.push('divider')
+      for (const r of ASSIGNABLE) if (r !== m.role) items.push({ label: `Make ${r}`, onClick: () => changeRole(m.user_id, r) })
+      items.push('divider')
+      items.push({ label: 'Remove from team', danger: true, onClick: () => removeMember(m.user_id, name) })
+    }
+    return items
   }
 
   if (collapsed) {
@@ -220,6 +258,7 @@ export function MembersSidebar({ members, me }: { members: SpaceMember[]; me: st
                     <button
                       key={m.user_id}
                       onClick={() => message(m.user_id)}
+                      onContextMenu={(e) => { e.preventDefault(); setMenu({ x: e.clientX, y: e.clientY, member: m }) }}
                       disabled={self || dmBusy === m.user_id}
                       title={self ? 'You' : `Message ${name}`}
                       style={{
@@ -320,6 +359,10 @@ export function MembersSidebar({ members, me }: { members: SpaceMember[]; me: st
           )
         })}
       </div>
+
+      {menu && (
+        <ContextMenu x={menu.x} y={menu.y} items={menuItems(menu.member)} onClose={() => setMenu(null)} />
+      )}
     </aside>
   )
 }
