@@ -4,8 +4,6 @@ import { useState, type FormEvent } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 
-type InputState = 'idle' | 'email' | 'password'
-
 const inputStyle = {
   display: 'block',
   width: '100%',
@@ -40,7 +38,6 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-  const [inputState, setInputState] = useState<InputState>('idle')
 
   async function signInWithGoogle() {
     setMsg(null)
@@ -84,7 +81,6 @@ export default function LoginPage() {
       color: 'var(--foreground)',
     }}>
 
-      {/* ── LEFT SIDE — Character Slot ─────────────────── */}
       <div style={{
         flex: '0 0 50%',
         display: 'flex',
@@ -97,45 +93,17 @@ export default function LoginPage() {
         overflow: 'hidden',
         height: '100dvh',
       }}>
-        {/* Grid BG */}
-        <div style={{
-          position: 'absolute', inset: 0,
-          backgroundImage: 'linear-gradient(to right, var(--border) 1px, transparent 1px), linear-gradient(to bottom, var(--border) 1px, transparent 1px)',
-          backgroundSize: '32px 32px',
-          opacity: 0.5,
-        }} />
-
-        {/* Branding */}
         <div style={{ position: 'absolute', top: 32, left: 32, display: 'flex', alignItems: 'center', gap: 10, zIndex: 2 }}>
           <div style={{ width: 28, height: 28, borderRadius: 6, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: 13 }}>CP</div>
           <span style={{ fontWeight: 800, fontSize: 16, fontFamily: 'var(--display-font)', color: 'var(--foreground)' }}>Collab Platform</span>
         </div>
-
-        {/*
-          ── CHARACTER SLOT ──────────────────────────────
-          Drop your character components here.
-          `inputState` values:
-            'idle'     → neutral
-            'email'    → email focused  → characters smile
-            'password' → password focused → characters cover eyes
-          ─────────────────────────────────────────────── */}
-        <div
-          id="character-slot"
-          data-input-state={inputState}
-          style={{
-            position: 'absolute',
-            bottom: 0, left: 0, right: 0,
-            display: 'flex',
-            alignItems: 'flex-end',
-            justifyContent: 'center',
-            zIndex: 2,
-          }}
-        >
-          {/* LEFT PANEL CONTENT WILL BE INSERTED HERE */}
+        <div style={{ position: 'relative', zIndex: 2, maxWidth: 320, padding: '0 24px', textAlign: 'center' }}>
+          <p style={{ fontFamily: 'var(--display-font)', fontSize: 22, lineHeight: 1.35, color: 'var(--foreground)', margin: 0, letterSpacing: '-0.01em' }}>
+            Chat, tasks, notes, a whiteboard, and calls. One workspace for a small team.
+          </p>
         </div>
       </div>
 
-      {/* ── RIGHT SIDE — Auth Form ─────────────────────── */}
       <div style={{
         flex: '0 0 50%',
         height: '100dvh',
@@ -146,10 +114,8 @@ export default function LoginPage() {
         overflowY: 'auto',
         padding: '48px 40px',
       }}>
-        {/* Constrained inner card */}
         <div style={{ width: '100%', maxWidth: 400 }}>
 
-          {/* Back link */}
           <Link href="/" style={{
             display: 'inline-flex', alignItems: 'center', gap: 6,
             color: 'var(--muted)', fontSize: 12,
@@ -159,7 +125,6 @@ export default function LoginPage() {
             ← Home
           </Link>
 
-          {/* Heading */}
           <div style={{ marginBottom: 32 }}>
             <h1 style={{
               fontFamily: 'var(--display-font)',
@@ -178,7 +143,6 @@ export default function LoginPage() {
             </p>
           </div>
 
-          {/* Google Button */}
           <button
             onClick={signInWithGoogle}
             style={{
@@ -206,17 +170,14 @@ export default function LoginPage() {
             Continue with Google
           </button>
 
-          {/* Divider */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
             <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
             <span style={{ color: 'var(--muted)', fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>or</span>
             <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
           </div>
 
-          {/* Form */}
           <form onSubmit={onEmailSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-            {/* Email */}
             <div>
               <label style={labelStyle}>Email</label>
               <input
@@ -225,15 +186,12 @@ export default function LoginPage() {
                 placeholder="you@company.com"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                onFocus={() => { setInputState('email'); }}
-                onBlur={() => setInputState('idle')}
                 style={inputStyle}
                 onFocusCapture={e => (e.target.style.borderColor = 'var(--accent)')}
                 onBlurCapture={e => (e.target.style.borderColor = 'var(--border)')}
               />
             </div>
 
-            {/* Password */}
             <div>
               <label style={labelStyle}>Password</label>
               <div style={{ position: 'relative' }}>
@@ -243,13 +201,10 @@ export default function LoginPage() {
                   placeholder="••••••••"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  onFocus={() => setInputState('password')}
-                  onBlur={() => setInputState('idle')}
                   style={{ ...inputStyle, paddingRight: 40 }}
                   onFocusCapture={e => (e.target.style.borderColor = 'var(--accent)')}
                   onBlurCapture={e => (e.target.style.borderColor = 'var(--border)')}
                 />
-                {/* Eye toggle */}
                 <button
                   type="button"
                   onClick={() => setShowPassword(p => !p)}
@@ -265,14 +220,12 @@ export default function LoginPage() {
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? (
-                    /* Eye-off */
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94" />
                       <path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19" />
                       <line x1="1" y1="1" x2="23" y2="23" />
                     </svg>
                   ) : (
-                    /* Eye */
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
                       <circle cx="12" cy="12" r="3" />
@@ -282,7 +235,6 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Submit */}
             <button
               type="submit"
               disabled={busy}
@@ -305,7 +257,6 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Error / success message */}
           {msg && (
             <div style={{
               marginTop: 14, padding: '10px 14px',
@@ -320,7 +271,6 @@ export default function LoginPage() {
             </div>
           )}
 
-          {/* Mode toggle */}
           <div style={{ marginTop: 24, textAlign: 'center', fontSize: 13, color: 'var(--muted)' }}>
             {mode === 'signin' ? (
               <>New here?{' '}
@@ -337,13 +287,12 @@ export default function LoginPage() {
             )}
           </div>
 
-          {/* Footer */}
           <p style={{
             marginTop: 32, fontSize: 11,
             color: 'var(--muted)', lineHeight: 1.6,
             fontFamily: 'var(--font-mono)', letterSpacing: '0.02em',
           }}>
-            By signing in you agree to our terms. Chat, docs, boards, whiteboard, and voice — all in one place.
+            A shared workspace for a small team. Chat, docs, boards, whiteboard, and voice, all in one place.
           </p>
 
         </div>
