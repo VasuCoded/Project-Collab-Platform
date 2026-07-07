@@ -41,3 +41,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# agent and custom rules
+AGENTS.md
+CLAUDE.md
+DESIGN-BRIEF.md
+
+
