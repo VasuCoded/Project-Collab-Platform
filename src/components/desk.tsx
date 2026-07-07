@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { createServer } from '@/app/(main)/actions'
 import { useUI } from '@/components/ui-provider'
+import { Badge } from '@/components/badge'
 
 export type Team = { id: string; name: string; members: number; openTasks: number; unread: number }
 export type WaitingTask = { id: string; title: string; spaceId: string; spaceName: string; due: string | null; status: string }
@@ -29,29 +30,7 @@ function dueLabel(iso: string | null): { text: string; overdue: boolean } | null
   if (mins < 60) mag = `${Math.max(mins, 1)}m`
   else if (hrs < 24) mag = `${hrs}h`
   else mag = `${days}d`
-  return { text: overdue ? `${mag} overdue` : mag, overdue }
-}
-
-function Badge({ n }: { n: number }) {
-  if (n <= 0) return null
-  return (
-    <span style={{
-      minWidth: 16,
-      height: 16,
-      padding: '0 5px',
-      borderRadius: 4,
-      background: 'var(--accent)',
-      color: '#fff',
-      fontSize: 10,
-      fontFamily: 'var(--font-mono), monospace',
-      fontWeight: 700,
-      display: 'inline-flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-    }}>
-      {n > 99 ? '99+' : n}
-    </span>
-  )
+  return { text: overdue ? `${mag} overdue` : `due in ${mag}`, overdue }
 }
 
 export function Desk({
@@ -71,43 +50,15 @@ export function Desk({
   const [dmFilter, setDmFilter] = useState<'all' | 'unread'>('all')
   const [formattedDate, setFormattedDate] = useState('')
 
-  // Scratchpad state
-  const [scratch, setScratch] = useState('')
-
-  // Dynamic mock telemetry state
-  const [telemetry, setTelemetry] = useState({ latency: '14ms', cpu: '2%', time: '' })
-
   useEffect(() => {
-    // Format Date
     const today = new Date()
     const options: Intl.DateTimeFormatOptions = { weekday: 'short', month: 'short', day: 'numeric' }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setFormattedDate(today.toLocaleDateString('en-US', options))
-
-    // Load scratchpad
-    const saved = localStorage.getItem('collab_desk_scratchpad')
-    if (saved) setScratch(saved)
-
-    // Live telemetry update
-    const interval = setInterval(() => {
-      const ms = Math.floor(Math.random() * 8) + 12
-      const cpuVal = Math.floor(Math.random() * 4) + 1
-      const now = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
-      setTelemetry({
-        latency: `${ms}ms`,
-        cpu: `${cpuVal}%`,
-        time: now
-      })
-    }, 2000)
-
-    return () => clearInterval(interval)
   }, [])
 
-  const handleScratchChange = (val: string) => {
-    setScratch(val)
-    localStorage.setItem('collab_desk_scratchpad', val)
-  }
-
   const blockedCount = waiting.length
+  const totalUnread = teams.reduce((n, t) => n + t.unread, 0) + dms.reduce((n, d) => n + d.unread, 0)
   const shownDms = dmFilter === 'unread' ? dms.filter((d) => d.unread > 0) : dms
 
   async function onCreate() {
@@ -124,8 +75,6 @@ export function Desk({
     }
   }
 
-
-
   return (
     <div style={{
       flex: 1,
@@ -136,7 +85,6 @@ export function Desk({
       fontFamily: 'var(--font-sans)',
       position: 'relative',
     }}>
-      {/* Background blueprint grid - extremely subtle */}
       <div style={{
         position: 'absolute',
         inset: 0,
@@ -156,7 +104,6 @@ export function Desk({
         gap: 24,
       }}>
 
-        {/* PREMIUM COMPACT HEADER */}
         <header style={{
           background: 'var(--card)',
           border: '1px solid var(--border)',
@@ -188,7 +135,7 @@ export function Desk({
                   textTransform: 'uppercase',
                   letterSpacing: '0.05em',
                 }}>
-                  // {formattedDate}
+                  {formattedDate}
                 </span>
               )}
             </div>
@@ -236,7 +183,6 @@ export function Desk({
           </button>
         </header>
 
-        {/* METRICS & SYSTEM TELEMETRY ROW */}
         <section style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(4, 1fr)',
@@ -285,22 +231,23 @@ export function Desk({
               Live Connected
             </div>
             <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 8, fontFamily: 'var(--font-mono)' }}>
-              Ping: {telemetry.latency}
+              Realtime channel active
             </div>
           </div>
 
           <div style={{ borderLeft: '1px solid var(--border-soft)', paddingLeft: 16 }}>
             <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--faint)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Local Time
+              Unread
             </div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--foreground)', marginTop: 4, fontFamily: 'var(--font-mono)' }}>
-              {telemetry.time || '--:--:--'}
+            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--foreground)', marginTop: 4 }}>
+              {totalUnread} <span style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 400 }}>{totalUnread === 1 ? 'message' : 'messages'}</span>
             </div>
-
+            <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 8, fontFamily: 'var(--font-mono)' }}>
+              {blockedCount} waiting on you
+            </div>
           </div>
         </section>
 
-        {/* 2-COLUMN SPLIT GRID */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: '1.5fr 1fr',
@@ -308,10 +255,8 @@ export function Desk({
           alignItems: 'start',
         }}>
 
-          {/* LEFT SIDE: TASKS & TEAMS */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
 
-            {/* SECTION 01: WAITING ON YOU */}
             <section style={{
               background: 'var(--card)',
               border: '1px solid var(--border)',
@@ -462,7 +407,6 @@ export function Desk({
               )}
             </section>
 
-            {/* SECTION 02: YOUR TEAMS */}
             <section style={{
               background: 'var(--card)',
               border: '1px solid var(--border)',
@@ -615,10 +559,8 @@ export function Desk({
 
           </div>
 
-          {/* RIGHT SIDE: DMs & SCRATCHPAD */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
 
-            {/* SECTION 03: DIRECT MESSAGES */}
             <section style={{
               background: 'var(--card)',
               border: '1px solid var(--border)',
@@ -648,7 +590,6 @@ export function Desk({
                   </h2>
                 </div>
 
-                {/* Toggle filter */}
                 <div style={{
                   display: 'flex',
                   background: 'var(--background)',
@@ -680,7 +621,6 @@ export function Desk({
                 </div>
               </div>
 
-              {/* List */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 {shownDms.length === 0 ? (
                   <div style={{
@@ -787,65 +727,6 @@ export function Desk({
                   ))
                 )}
               </div>
-            </section>
-
-            {/* NEW SECTION 05: PERSONAL SCRATCHPAD */}
-            <section style={{
-              background: 'var(--card)',
-              border: '1px solid var(--border)',
-              borderRadius: 8,
-              padding: 24,
-              boxShadow: '0 1px 3px var(--shadow)',
-            }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                marginBottom: 16,
-                borderBottom: '1px solid var(--border-soft)',
-                paddingBottom: 10,
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--accent)', fontWeight: 700 }}>[05]</span>
-                  <h2 style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    letterSpacing: '0.08em',
-                    textTransform: 'uppercase',
-                    color: 'var(--muted)',
-                    margin: 0,
-                  }}>
-                    Desk Scratchpad
-                  </h2>
-                </div>
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--faint)', textTransform: 'uppercase' }}>
-                  local auto-save
-                </span>
-              </div>
-
-              <textarea
-                value={scratch}
-                onChange={(e) => handleScratchChange(e.target.value)}
-                placeholder="Draft daily action plans, ideas, or quick todo items here..."
-                style={{
-                  width: '100%',
-                  height: 100,
-                  boxSizing: 'border-box',
-                  background: 'var(--background)',
-                  border: '1px solid var(--border-soft)',
-                  borderRadius: 6,
-                  padding: 12,
-                  color: 'var(--foreground)',
-                  fontSize: 12,
-                  fontFamily: 'var(--font-mono)',
-                  lineHeight: 1.5,
-                  resize: 'none',
-                  outline: 'none',
-                  transition: 'border-color 0.15s ease',
-                }}
-                onFocus={(e) => e.currentTarget.style.borderColor = 'var(--accent)'}
-                onBlur={(e) => e.currentTarget.style.borderColor = 'var(--border-soft)'}
-              />
             </section>
           </div>
 

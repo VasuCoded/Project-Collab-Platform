@@ -47,7 +47,6 @@ export function Whiteboard({ channelId, channelName, me, meName }: { channelId: 
   const [here, setHere] = useState(1);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
 
-  // Sync theme with HTML data-theme attribute
   useEffect(() => {
     const updateTheme = () => {
       const currentTheme = (document.documentElement.getAttribute('data-theme') || 'light') as 'light' | 'dark';

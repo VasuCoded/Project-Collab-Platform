@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, useState, useCallback, useRef } from 'react'
+import React, { createContext, useContext, useState, useCallback } from 'react'
 
 type ToastType = 'success' | 'error' | 'info'
 
@@ -53,7 +53,6 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
   const [promptConfig, setPromptConfig] = useState<PromptConfig | null>(null)
   const [promptValue, setPromptValue] = useState('')
 
-  // Toast implementation
   const toast = useCallback((message: string, type: ToastType = 'info') => {
     const id = Math.random().toString(36).substring(2, 9)
     setToasts((prev) => [...prev, { id, message, type }])
@@ -62,21 +61,18 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
     }, 4000)
   }, [])
 
-  // Alert implementation
   const alert = useCallback((message: string, title?: string) => {
     return new Promise<void>((resolve) => {
       setAlertConfig({ title, message, resolve })
     })
   }, [])
 
-  // Confirm implementation
   const confirm = useCallback((message: string, title?: string) => {
     return new Promise<boolean>((resolve) => {
       setConfirmConfig({ title, message, resolve })
     })
   }, [])
 
-  // Prompt implementation
   const prompt = useCallback((message: string, defaultValue = '', title?: string) => {
     setPromptValue(defaultValue)
     return new Promise<string | null>((resolve) => {
@@ -84,7 +80,6 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
     })
   }, [])
 
-  // Helper close handlers
   const handleAlertClose = () => {
     if (alertConfig) {
       alertConfig.resolve()
@@ -110,7 +105,6 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
     <UIContext.Provider value={{ toast, alert, confirm, prompt }}>
       {children}
 
-      {/* TOAST CONTAINER */}
       <div style={{
         position: 'fixed',
         top: 24,
@@ -178,7 +172,6 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
         })}
       </div>
 
-      {/* ALERT MODAL */}
       {alertConfig && (
         <div style={overlayStyle}>
           <div style={modalStyle}>
@@ -196,7 +189,6 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
         </div>
       )}
 
-      {/* CONFIRM MODAL */}
       {confirmConfig && (
         <div style={overlayStyle}>
           <div style={modalStyle}>
@@ -217,7 +209,6 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
         </div>
       )}
 
-      {/* PROMPT MODAL */}
       {promptConfig && (
         <div style={overlayStyle}>
           <div style={modalStyle}>
@@ -247,7 +238,6 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
         </div>
       )}
 
-      {/* CSS Animation Keyframes Injector */}
       <style>{`
         @keyframes toast-in {
           from { transform: translateY(-12px) scale(0.95); opacity: 0; }
@@ -258,7 +248,6 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
   )
 }
 
-// Styling Constants
 const overlayStyle: React.CSSProperties = {
   position: 'fixed',
   inset: 0,

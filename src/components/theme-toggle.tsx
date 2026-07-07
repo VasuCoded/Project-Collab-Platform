@@ -6,13 +6,16 @@ export function ThemeToggle({ style }: { style?: React.CSSProperties }) {
   const [theme, setTheme] = useState<'light' | 'dark'>('light')
 
   useEffect(() => {
-    const t = (document.documentElement.getAttribute('data-theme') || 'light') as 'light' | 'dark'
-    setTheme(t)
+    const read = () =>
+      setTheme((document.documentElement.getAttribute('data-theme') || 'light') as 'light' | 'dark')
+    read()
+    const observer = new MutationObserver(read)
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
+    return () => observer.disconnect()
   }, [])
 
   const toggleTheme = () => {
     const next = theme === 'light' ? 'dark' : 'light'
-    setTheme(next)
     document.documentElement.setAttribute('data-theme', next)
     localStorage.setItem('theme', next)
   }

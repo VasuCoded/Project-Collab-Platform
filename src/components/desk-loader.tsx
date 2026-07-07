@@ -33,7 +33,6 @@ export function DeskLoader() {
       overflow: "hidden",
     }}>
 
-      {/* Subtle grid backdrop */}
       <div style={{
         position: "absolute",
         inset: 0,
@@ -44,7 +43,6 @@ export function DeskLoader() {
         pointerEvents: "none",
       }} />
 
-      {/* Radial glow behind the mark */}
       <div style={{
         position: "absolute",
         width: 320,
@@ -55,17 +53,14 @@ export function DeskLoader() {
         pointerEvents: "none",
       }} />
 
-      {/* Content */}
       <div style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center", gap: 28 }}>
 
-        {/* Logo mark */}
         <div style={{
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
           gap: 16,
         }}>
-          {/* CP badge */}
           <div style={{
             width: 48,
             height: 48,
@@ -84,7 +79,6 @@ export function DeskLoader() {
             CP
           </div>
 
-          {/* App name */}
           <span style={{
             fontSize: 14,
             fontWeight: 700,
@@ -97,7 +91,6 @@ export function DeskLoader() {
           </span>
         </div>
 
-        {/* Cubicle mark — 2×2 breathing squares */}
         <div style={{
           display: "grid",
           gridTemplateColumns: "repeat(2, 18px)",
@@ -109,7 +102,6 @@ export function DeskLoader() {
           ))}
         </div>
 
-        {/* Terminal line */}
         <div style={{
           display: "flex",
           alignItems: "center",
@@ -128,7 +120,6 @@ export function DeskLoader() {
           </span>
         </div>
 
-        {/* Progress bar */}
         <div style={{
           width: 160,
           height: 2,

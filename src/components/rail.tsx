@@ -8,6 +8,7 @@ import { createServer, startDm } from '@/app/(main)/actions'
 import { createClient } from '@/lib/supabase/client'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { useUI } from '@/components/ui-provider'
+import { Badge } from '@/components/badge'
 
 type Space = { id: string; type: string; name: string | null }
 type Dm = { id: string; type: string; name: string | null; avatar: string | null; unread: number; lastAt: string | null }
@@ -15,29 +16,6 @@ type Profile = { display_name: string | null; avatar_url: string | null }
 
 function initials(name: string | null) {
   return (name ?? '?').trim().slice(0, 2).toUpperCase() || '?'
-}
-
-function Badge({ n }: { n: number }) {
-  if (n <= 0) return null
-  return (
-    <span style={{
-      minWidth: 16,
-      height: 16,
-      padding: '0 5px',
-      borderRadius: 4,
-      background: 'var(--accent)',
-      color: '#fff',
-      fontSize: 10,
-      fontFamily: 'var(--font-mono), monospace',
-      fontWeight: 700,
-      display: 'inline-flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      flexShrink: 0,
-    }}>
-      {n > 99 ? '99+' : n}
-    </span>
-  )
 }
 
 function DeskGlyph() {
@@ -147,6 +125,7 @@ export function Rail({
   }
 
   const [unreadMap, setUnreadMap] = useState<Record<string, number>>(unread)
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => setUnreadMap(unread), [unread])
 
   const inDm = dms.some((d) => d.id === activeSpaceId)
@@ -201,7 +180,6 @@ export function Rail({
     router.push(`/${id}`)
   }
 
-  // Cool squircle geometry style mapping
   const getRailItemStyle = (active: boolean, isPlus = false): React.CSSProperties => ({
     display: 'flex',
     alignItems: 'center',
@@ -245,7 +223,6 @@ export function Rail({
       >
         <div style={{ flex: 1, overflowY: 'auto', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           
-          {/* Desk Home button */}
           <Link 
             href="/desk" 
             title="Desk" 
@@ -256,7 +233,6 @@ export function Rail({
             {pathname === '/desk' && <span className="active-dot-left" />}
           </Link>
 
-          {/* DM Hub Button */}
           <button
             onClick={() => { setDmOpen((o) => !o); setPicking(false) }}
             title="Direct Messages"
@@ -292,10 +268,8 @@ export function Rail({
             )}
           </button>
 
-          {/* Section Divider */}
           <div style={{ width: 24, height: 1, background: 'var(--border)', margin: '8px 0 12px' }} />
 
-          {/* Servers Grid */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
             {servers.map((space) => {
               const active = space.id === activeSpaceId
@@ -327,7 +301,6 @@ export function Rail({
             })}
           </div>
 
-          {/* Add Server Button */}
           <button 
             onClick={onCreate} 
             disabled={busy} 
@@ -338,7 +311,6 @@ export function Rail({
             <span style={{ fontSize: 18, fontWeight: 300 }}>+</span>
           </button>
 
-          {/* Private personal space */}
           {privateSpace && (
             <Link 
               href={`/${privateSpace.id}`} 
@@ -352,7 +324,6 @@ export function Rail({
           )}
         </div>
 
-        {/* BOTTOM METRICS, PROFILE & SETTINGS */}
         <div
           style={{
             borderTop: '1px solid var(--border)',
@@ -406,7 +377,6 @@ export function Rail({
         </div>
       </nav>
 
-      {/* DM SLIDING DRAWER */}
       {dmOpen && (
         <>
           <div onClick={() => { setDmOpen(false); setPicking(false) }} style={{ position: 'fixed', inset: 0, zIndex: 40, background: 'rgba(0, 0, 0, 0.15)', backdropFilter: 'blur(2px)' }} />
@@ -578,7 +548,6 @@ export function Rail({
         </>
       )}
 
-      {/* Hover & Active Styles Injector */}
       <style>{`
         .rail-nav-item:hover {
           border-radius: 10px !important;
