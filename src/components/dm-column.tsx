@@ -69,7 +69,7 @@ export function DmColumn({ dms, me, activeId }: { dms: DmListItem[]; me: string;
   }
 
   return (
-    <aside style={{ width: 260, flexShrink: 0, background: 'var(--sidebar)', borderRight: '1px solid var(--border)', height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <aside className="dm-column" style={{ width: 260, flexShrink: 0, background: 'var(--sidebar)', borderRight: '1px solid var(--border)', height: '100%', display: 'flex', flexDirection: 'column' }}>
       <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <span style={{ fontWeight: 700, fontSize: 12, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--foreground)', fontFamily: 'var(--font-mono)' }}>Messages</span>
         {picking && (

@@ -9,7 +9,7 @@ import { ContextMenu, type MenuItem } from '@/components/context-menu'
 
 type Channel = { id: string; type: string; name: string }
 
-function renderIcon(type: string) {
+export function renderIcon(type: string) {
   switch (type) {
     case 'text':
       return (

@@ -238,6 +238,7 @@ export function Rail({
   return (
     <>
       <nav
+        className="app-rail"
         style={{
           width: 72,
           background: 'var(--sidebar)',

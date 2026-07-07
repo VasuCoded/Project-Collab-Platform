@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentUser, getProfile, getUnreadBySpace, getDmPeers } from '@/lib/supabase/queries'
 import { Rail } from '@/components/rail'
+import { MobileNav } from '@/components/mobile-nav'
 
 export default async function MainLayout({ children }: { children: ReactNode }) {
   const user = await getCurrentUser()
@@ -46,7 +47,10 @@ export default async function MainLayout({ children }: { children: ReactNode }) 
   return (
     <div style={{ display: 'flex', height: '100dvh', overflow: 'hidden' }}>
       <Rail servers={servers} dms={dms} unread={unreadMap} privateSpace={privateSpace} profile={profile} me={user.id} />
-      <div style={{ flex: 1, minWidth: 0, display: 'flex' }}>{children}</div>
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+        <MobileNav servers={servers} dms={dms} privateSpace={privateSpace} profile={profile} />
+        <div style={{ flex: 1, minWidth: 0, display: 'flex' }}>{children}</div>
+      </div>
     </div>
   )
 }

@@ -97,7 +97,7 @@ export function MembersSidebar({ members, me, spaceId, myRole }: { members: Spac
 
   if (collapsed) {
     return (
-      <aside style={{
+      <aside className="members-sidebar" style={{
         width: 48,
         flexShrink: 0,
         borderLeft: '1px solid var(--border)',
@@ -158,7 +158,7 @@ export function MembersSidebar({ members, me, spaceId, myRole }: { members: Spac
   }
 
   return (
-    <aside style={{
+    <aside className="members-sidebar" style={{
       width: 232,
       flexShrink: 0,
       borderLeft: '1px solid var(--border)',
