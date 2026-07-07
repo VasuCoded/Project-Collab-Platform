@@ -133,6 +133,7 @@ export function ChannelColumn({
   const [creating, setCreating] = useState(false)
   const [hovered, setHovered] = useState<string | null>(null)
   const [menu, setMenu] = useState<{ x: number; y: number; channel: Channel } | null>(null)
+  const [spaceMenu, setSpaceMenu] = useState<{ x: number; y: number } | null>(null)
 
   function copyChannelLink(id: string) {
     navigator.clipboard?.writeText(`${window.location.origin}/${spaceId}/${id}`)
@@ -147,6 +148,14 @@ export function ChannelColumn({
     if (canManage && c.type !== 'cubicle') {
       items.push('divider', { label: 'Delete channel', onClick: () => deleteChannel(c.id, c.name), danger: true })
     }
+    return items
+  }
+
+  function spaceMenuItems(): MenuItem[] {
+    const items: MenuItem[] = []
+    if (canManage) items.push({ label: 'Add channel', onClick: () => setAdding(true) })
+    if (canInvite) items.push({ label: 'Invite people', onClick: () => { if (!open) toggleInvite() } })
+    if (isServer) items.push({ label: 'View members', onClick: () => router.push(`/${spaceId}/members`) })
     return items
   }
 
@@ -362,7 +371,17 @@ export function ChannelColumn({
       )}
 
       {/* Channels List */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '12px 10px' }}>
+      <div
+        style={{ flex: 1, overflowY: 'auto', padding: '12px 10px' }}
+        onContextMenu={(e) => {
+          const t = e.target as HTMLElement
+          if (t.closest('[data-chan], button, input, select, textarea, a')) return
+          const items = spaceMenuItems()
+          if (!items.length) return
+          e.preventDefault()
+          setSpaceMenu({ x: e.clientX, y: e.clientY })
+        }}
+      >
         {channels.length === 0 && (
           <div style={{ color: 'var(--faint)', fontSize: 12, padding: '12px 8px', fontFamily: 'var(--font-mono)', textTransform: 'uppercase' }}>
             [ No channels yet ]
@@ -374,6 +393,7 @@ export function ChannelColumn({
           return (
             <div
               key={c.id}
+              data-chan
               onContextMenu={(e) => { e.preventDefault(); setMenu({ x: e.clientX, y: e.clientY, channel: c }) }}
               style={{
                 display: 'flex',
@@ -595,6 +615,9 @@ export function ChannelColumn({
 
       {menu && (
         <ContextMenu x={menu.x} y={menu.y} items={channelMenuItems(menu.channel)} onClose={() => setMenu(null)} />
+      )}
+      {spaceMenu && (
+        <ContextMenu x={spaceMenu.x} y={spaceMenu.y} items={spaceMenuItems()} onClose={() => setSpaceMenu(null)} />
       )}
     </aside>
   )
