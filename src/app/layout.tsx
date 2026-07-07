@@ -79,6 +79,7 @@ const jsonLd = {
 }
 
 import { UIProvider } from '@/components/ui-provider'
+import { Analytics } from '@vercel/analytics/next'
 
 export default function RootLayout({
   children,
@@ -105,6 +106,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col">
         <UIProvider>{children}</UIProvider>
+        <Analytics />
       </body>
     </html>
   )
