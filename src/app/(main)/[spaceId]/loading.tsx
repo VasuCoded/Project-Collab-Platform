@@ -1,5 +1,5 @@
-import { DeskLoader } from "@/components/desk-loader";
+import { PaneLoader } from "@/components/pane-loader";
 
 export default function Loading() {
-  return <DeskLoader />;
+  return <PaneLoader />;
 }

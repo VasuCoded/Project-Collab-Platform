@@ -94,10 +94,10 @@ export default function LoginPage() {
         overflow: 'hidden',
         height: '100dvh',
       }}>
-        <div style={{ position: 'absolute', top: 32, left: 32, display: 'flex', alignItems: 'center', gap: 10, zIndex: 2 }}>
+        <Link href="/" title="Home" style={{ position: 'absolute', top: 32, left: 32, display: 'flex', alignItems: 'center', gap: 10, zIndex: 2, textDecoration: 'none' }}>
           <div style={{ width: 28, height: 28, borderRadius: 6, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: 13 }}>CP</div>
           <span style={{ fontWeight: 800, fontSize: 16, fontFamily: 'var(--display-font)', color: 'var(--foreground)' }}>Collab Platform</span>
-        </div>
+        </Link>
         <div style={{ position: 'relative', zIndex: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 28 }}>
           <LoginBoard />
           <p style={{ fontFamily: 'var(--display-font)', fontSize: 18, lineHeight: 1.35, color: 'var(--muted)', margin: 0, letterSpacing: '-0.01em', textAlign: 'center', maxWidth: 360 }}>
