@@ -124,10 +124,19 @@ body {
   100% { transform: translateX(350%); opacity: 0.3; }
 }
 
+.login-board-enter {
+  animation: board-enter 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes board-enter {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .cube { animation: none; opacity: 0.85; }
   .cur { animation: none; }
   .loader-bar { animation: none; width: 60%; }
+  .login-board-enter { animation: none; }
 }
 
 .landing-hero-badge {

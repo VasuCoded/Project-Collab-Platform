@@ -98,12 +98,14 @@ export default function LoginPage() {
           <div style={{ width: 28, height: 28, borderRadius: 6, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: 13 }}>CP</div>
           <span style={{ fontWeight: 800, fontSize: 16, fontFamily: 'var(--display-font)', color: 'var(--foreground)' }}>Collab Platform</span>
         </Link>
-        <div style={{ position: 'relative', zIndex: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 28 }}>
-          <LoginBoard />
-          <p style={{ fontFamily: 'var(--display-font)', fontSize: 18, lineHeight: 1.35, color: 'var(--muted)', margin: 0, letterSpacing: '-0.01em', textAlign: 'center', maxWidth: 360 }}>
-            Chat, tasks, notes, a whiteboard, and calls. One workspace for a small team.
-          </p>
+        <div style={{ position: 'relative', zIndex: 2, transform: 'scale(1.34)', transformOrigin: 'center' }}>
+          <div className="login-board-enter">
+            <LoginBoard />
+          </div>
         </div>
+        <p style={{ position: 'absolute', bottom: 44, left: 0, right: 0, padding: '0 56px', fontFamily: 'var(--display-font)', fontSize: 18, lineHeight: 1.35, color: 'var(--muted)', margin: 0, letterSpacing: '-0.01em', textAlign: 'center', zIndex: 2 }}>
+          Chat, tasks, notes, a whiteboard, and calls. One workspace for a small team.
+        </p>
       </div>
 
       <div style={{
