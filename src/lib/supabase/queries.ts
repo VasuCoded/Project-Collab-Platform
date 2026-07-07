@@ -84,6 +84,21 @@ export async function getDmPeers(dmSpaceIds: string[], meId: string) {
   return map;
 }
 
+export type SpaceMember = {
+  user_id: string;
+  role: string;
+  profiles: { display_name: string | null; avatar_url: string | null; status_line: string | null } | null;
+};
+
+export const getSpaceMembers = cache(async (spaceId: string): Promise<SpaceMember[]> => {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("space_members")
+    .select("user_id, role, profiles(display_name, avatar_url, status_line)")
+    .eq("space_id", spaceId);
+  return (data ?? []) as unknown as SpaceMember[];
+});
+
 export type DmListItem = { id: string; name: string | null; avatar: string | null; unread: number; lastAt: string | null };
 
 // Every DM conversation for the current user, most recently active first.

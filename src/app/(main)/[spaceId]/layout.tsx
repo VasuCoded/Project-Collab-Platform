@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react'
 import { notFound } from 'next/navigation'
-import { getCurrentUser, getMyRole, getSpace, getSpaceChannels, getDmList } from '@/lib/supabase/queries'
+import { getCurrentUser, getMyRole, getSpace, getSpaceChannels, getDmList, getSpaceMembers } from '@/lib/supabase/queries'
 import { ChannelColumn } from '@/components/channel-column'
 import { DmColumn } from '@/components/dm-column'
+import { MembersSidebar } from '@/components/members-sidebar'
 
 export default async function SpaceLayout({
   children,
@@ -39,10 +40,13 @@ export default async function SpaceLayout({
   const canManage =
     (space.type === 'server' && (role === 'owner' || role === 'admin')) || (space.type === 'private' && role === 'owner')
 
+  const members = space.type === 'server' && user ? await getSpaceMembers(spaceId) : []
+
   return (
     <div style={{ display: 'flex', flex: 1, minWidth: 0, height: '100%' }}>
       <ChannelColumn spaceName={spaceName} spaceId={spaceId} channels={channels} canInvite={canInvite} canManage={canManage} isServer={space.type === 'server'} />
       <div style={{ flex: 1, minWidth: 0, display: 'flex' }}>{children}</div>
+      {space.type === 'server' && user && <MembersSidebar members={members} me={user.id} />}
     </div>
   )
 }
