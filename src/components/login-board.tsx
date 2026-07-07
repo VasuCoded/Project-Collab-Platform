@@ -97,7 +97,7 @@ export function LoginBoard() {
   const live = Object.values(remotes)
 
   return (
-    <div ref={boardRef} style={{ position: 'relative', width: W, height: H }}>
+    <div ref={boardRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', overflow: 'hidden' }}>
       <style>{`
         @keyframes lb-drift-a { 0%,100% { transform: translate(-2px,-2px); } 50% { transform: translate(8px,-10px); } }
         @keyframes lb-drift-b { 0%,100% { transform: translate(-2px,-2px); } 50% { transform: translate(-11px,5px); } }
@@ -105,58 +105,75 @@ export function LoginBoard() {
         @keyframes lb-pulse  { 0%,100% { opacity: 1; } 50% { opacity: 0.45; } }
       `}</style>
 
-      <div style={{ position: 'absolute', inset: 0, borderRadius: 16, overflow: 'hidden', border: '1px solid var(--border)', background: 'var(--card)', boxShadow: '0 24px 60px rgba(0,0,0,0.14)' }}>
-        <div style={{ position: 'absolute', inset: 0, backgroundImage: 'linear-gradient(to right, var(--border) 1px, transparent 1px), linear-gradient(to bottom, var(--border) 1px, transparent 1px)', backgroundSize: '26px 26px', opacity: 0.5 }} />
-        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(120% 90% at 50% 40%, transparent 55%, rgba(0,0,0,0.16) 100%)', pointerEvents: 'none' }} />
+      {/* Full bleed grid background */}
+      <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', background: 'var(--card)' }}>
+        <div style={{ position: 'absolute', inset: 0, backgroundImage: 'linear-gradient(to right, var(--border-soft) 1px, transparent 1px), linear-gradient(to bottom, var(--border-soft) 1px, transparent 1px)', backgroundSize: '24px 24px', opacity: 0.7 }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(120% 90% at 50% 40%, transparent 55%, rgba(0,0,0,0.04) 100%)', pointerEvents: 'none' }} />
       </div>
 
       {live.length > 0 && (
-        <div style={{ position: 'absolute', top: 14, left: 16, zIndex: 6, display: 'flex', alignItems: 'center', gap: 6, background: 'var(--accent-soft)', color: 'var(--accent)', fontSize: 11, fontWeight: 700, fontFamily: 'var(--font-mono)', padding: '3px 8px', borderRadius: 99, border: '1px solid var(--border)' }}>
+        <div style={{ position: 'absolute', top: 24, left: 24, zIndex: 6, display: 'flex', alignItems: 'center', gap: 6, background: 'var(--accent-soft)', color: 'var(--accent)', fontSize: 11, fontWeight: 700, fontFamily: 'var(--font-mono)', padding: '3px 8px', borderRadius: 99, border: '1px solid var(--border)' }}>
           <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)' }} />
           {live.length + 1} here now
         </div>
       )}
 
-      <div style={{ position: 'absolute', top: 20, right: 14, width: 150, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 14px', boxShadow: '0 8px 20px rgba(0,0,0,0.12)' }}>
-        <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', color: 'var(--faint)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', marginBottom: 10 }}>Palette</div>
-        <div style={{ display: 'flex', gap: 7 }}>
-          {['#0E5C46', '#7fae95', '#f4edd6', '#B23A26', '#182019'].map((c) => (
-            <span key={c} style={{ width: 20, height: 20, borderRadius: 5, background: c, boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.08)' }} />
-          ))}
-        </div>
-      </div>
-
-      <div style={{ position: 'absolute', top: 92, left: 22, width: 148, transform: 'rotate(-4deg)' }}>
-        <div style={{ position: 'relative', background: '#f4edd6', color: '#3a3324', borderRadius: 3, padding: '16px 16px 20px', boxShadow: '0 12px 26px rgba(0,0,0,0.18)', fontFamily: "'Caveat','Segoe Script',cursive", fontSize: 21, lineHeight: 1.2 }}>
-          keep the green deep, no neon
-          <span style={{ position: 'absolute', right: 0, bottom: 0, width: 0, height: 0, borderStyle: 'solid', borderWidth: '0 0 16px 16px', borderColor: 'transparent transparent rgba(0,0,0,0.10) transparent' }} />
-        </div>
-      </div>
-
-      <div style={{ position: 'absolute', top: 244, left: 116, width: 232, height: 96 }}>
-        <div style={{ position: 'absolute', inset: -8, border: '1.5px solid var(--accent)', borderRadius: 8, animation: 'lb-pulse 2.4s ease-in-out infinite' }}>
-          {[['-4px', '-4px'], ['-4px', 'auto'], ['auto', '-4px'], ['auto', 'auto']].map(([t, l], i) => (
-            <span key={i} style={{ position: 'absolute', top: t === 'auto' ? undefined : t, bottom: t === 'auto' ? '-4px' : undefined, left: l === 'auto' ? undefined : l, right: l === 'auto' ? '-4px' : undefined, width: 7, height: 7, background: 'var(--card)', border: '1.5px solid var(--accent)', borderRadius: 2 }} />
-          ))}
-        </div>
-        <div style={{ position: 'absolute', inset: 0, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 8, padding: '12px 14px', boxShadow: '0 6px 16px rgba(0,0,0,0.10)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <span style={{ fontSize: 9, fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--accent)', background: 'var(--accent-soft)', padding: '2px 6px', borderRadius: 4 }}>IN PROGRESS</span>
-            <span style={{ fontSize: 10, color: 'var(--faint)', fontFamily: 'var(--font-mono)' }}>Due today</span>
-          </div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--foreground)' }}>Design system variables</div>
-          <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 7 }}>
-            <span style={{ width: 18, height: 18, borderRadius: '50%', background: 'var(--accent)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700 }}>V</span>
-            <span style={{ fontSize: 11, color: 'var(--muted)' }}>Vasu</span>
+      {/* Centered Mockup Components Wrapper */}
+      <div style={{
+        position: 'absolute',
+        left: '50%',
+        top: '50%',
+        transform: 'translate(-50%, -50%)',
+        width: W,
+        height: H,
+        pointerEvents: 'none',
+        zIndex: 2
+      }}>
+        {/* Sticky Note */}
+        <div style={{ position: 'absolute', top: 92, left: 22, width: 148, transform: 'rotate(-4deg)', pointerEvents: 'auto' }}>
+          <div style={{ position: 'relative', background: '#f4edd6', color: '#3a3324', borderRadius: 3, padding: '16px 16px 20px', boxShadow: '0 12px 26px rgba(0,0,0,0.12)', fontFamily: "'Caveat','Segoe Script',cursive", fontSize: 21, lineHeight: 1.2 }}>
+            keep the green deep, no neon
+            <span style={{ position: 'absolute', right: 0, bottom: 0, width: 0, height: 0, borderStyle: 'solid', borderWidth: '0 0 16px 16px', borderColor: 'transparent transparent rgba(0,0,0,0.10) transparent' }} />
           </div>
         </div>
-      </div>
 
-      <div style={{ position: 'absolute', top: 428, left: 22, width: 214, display: 'flex', gap: 8 }}>
-        <span style={{ width: 26, height: 26, borderRadius: '50%', background: '#B23A26', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>A</span>
-        <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '3px 12px 12px 12px', padding: '9px 12px', boxShadow: '0 6px 16px rgba(0,0,0,0.10)' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--foreground)', marginBottom: 2 }}>Aria</div>
-          <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.4 }}>round these corners a touch?</div>
+        {/* Color Palette */}
+        <div style={{ position: 'absolute', top: 20, right: 14, width: 150, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 14px', boxShadow: '0 8px 20px rgba(0,0,0,0.08)', pointerEvents: 'auto' }}>
+          <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', color: 'var(--muted)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', marginBottom: 10 }}>Palette</div>
+          <div style={{ display: 'flex', gap: 7 }}>
+            {['#0E5C46', '#7fae95', '#f4edd6', '#B23A26', '#182019'].map((c) => (
+              <span key={c} style={{ width: 20, height: 20, borderRadius: 5, background: c, boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.08)' }} />
+            ))}
+          </div>
+        </div>
+
+        {/* Task Card */}
+        <div style={{ position: 'absolute', top: 244, left: 116, width: 232, height: 96, pointerEvents: 'auto' }}>
+          <div style={{ position: 'absolute', inset: -8, border: '1.5px solid var(--accent)', borderRadius: 8, animation: 'lb-pulse 2.4s ease-in-out infinite' }}>
+            {[['-4px', '-4px'], ['-4px', 'auto'], ['auto', '-4px'], ['auto', 'auto']].map(([t, l], i) => (
+              <span key={i} style={{ position: 'absolute', top: t === 'auto' ? undefined : t, bottom: t === 'auto' ? '-4px' : undefined, left: l === 'auto' ? undefined : l, right: l === 'auto' ? '-4px' : undefined, width: 7, height: 7, background: 'var(--card)', border: '1.5px solid var(--accent)', borderRadius: 2 }} />
+            ))}
+          </div>
+          <div style={{ position: 'absolute', inset: 0, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 8, padding: '12px 14px', boxShadow: '0 6px 16px rgba(0,0,0,0.06)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <span style={{ fontSize: 9, fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--accent)', background: 'var(--accent-soft)', padding: '2px 6px', borderRadius: 4 }}>IN PROGRESS</span>
+              <span style={{ fontSize: 10, color: 'var(--faint)', fontFamily: 'var(--font-mono)' }}>Due today</span>
+            </div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--foreground)' }}>Design system variables</div>
+            <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 7 }}>
+              <span style={{ width: 18, height: 18, borderRadius: '50%', background: 'var(--accent)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700 }}>V</span>
+              <span style={{ fontSize: 11, color: 'var(--muted)' }}>Vasu</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Aria Comment Bubble */}
+        <div style={{ position: 'absolute', top: 428, left: 22, width: 214, display: 'flex', gap: 8, pointerEvents: 'auto' }}>
+          <span style={{ width: 26, height: 26, borderRadius: '50%', background: '#B23A26', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>A</span>
+          <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '3px 12px 12px 12px', padding: '9px 12px', boxShadow: '0 6px 16px rgba(0,0,0,0.06)' }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--foreground)', marginBottom: 2 }}>Aria</div>
+            <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.4 }}>round these corners a touch?</div>
+          </div>
         </div>
       </div>
 

@@ -85,56 +85,166 @@ export function CubicleChannel({
   }, []);
 
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", height: "100%", minWidth: 0, background: "var(--background)", fontFamily: "var(--font-sans)", transition: "background-color 0.15s ease" }}>
-      <div style={{ padding: "12px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 12 }}>
-        <span style={{ fontWeight: 700, color: "var(--foreground)" }}>▣ {channelName}</span>
-        <span style={{ fontSize: 12, color: "var(--faint)", fontFamily: "var(--font-mono)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-          {isOwner ? "your cubicle" : `${ownerName}'s cubicle`}
-        </span>
-        {isOwner && (
-          <span style={{ marginLeft: "auto", fontSize: 12, color: "var(--muted)" }}>
-            {state === "saving" ? "saving…" : state === "saved" ? "saved" : ""}
+    <div style={{
+      flex: 1,
+      display: "flex",
+      flexDirection: "column",
+      height: "100%",
+      minWidth: 0,
+      background: "var(--background)",
+      fontFamily: "var(--font-sans)",
+      transition: "background-color 0.15s ease"
+    }}>
+      {/* Header bar */}
+      <div style={{
+        padding: "16px 24px",
+        borderBottom: "1px solid var(--border)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 16
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--accent)", fontWeight: 700 }}>[▣]</span>
+          <span style={{
+            fontFamily: "var(--display-font)",
+            fontSize: 18,
+            fontWeight: 800,
+            color: "var(--foreground)"
+          }}>
+            {channelName}
           </span>
-        )}
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          {/* Owner label */}
+          <span style={{
+            fontSize: 10,
+            fontFamily: "var(--font-mono)",
+            fontWeight: 700,
+            textTransform: "uppercase",
+            letterSpacing: "0.05em",
+            color: isOwner ? "var(--accent)" : "var(--muted)",
+            background: isOwner ? "var(--accent-soft)" : "var(--border-soft)",
+            padding: "2px 8px",
+            borderRadius: 4
+          }}>
+            {isOwner ? "Your Cubicle" : `${ownerName}'s Cubicle`}
+          </span>
+
+          {isOwner && (
+            <>
+              <span style={{ width: 1, height: 12, background: "var(--border)" }} />
+              {/* Save status tag */}
+              <span style={{
+                fontSize: 10,
+                fontFamily: "var(--font-mono)",
+                fontWeight: 700,
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+                color: state === "saving" ? "var(--warning)" : state === "saved" ? "var(--success)" : "var(--muted)"
+              }}>
+                {state === "saving" ? "Saving..." : state === "saved" ? "Saved" : ""}
+              </span>
+            </>
+          )}
+        </div>
       </div>
 
       <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
-        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
-          {isOwner ? (
-            <textarea
-              value={text}
-              onChange={(e) => onChange(e.target.value)}
-              disabled={!loaded}
-              placeholder={loaded ? "Your personal wall. Only you can edit this — everyone in the team can read it." : "loading…"}
-              spellCheck
-              style={{
-                flex: 1,
-                width: "100%",
-                resize: "none",
-                border: "none",
-                outline: "none",
-                background: "var(--background)",
-                color: "var(--foreground)",
-                fontSize: 15,
-                lineHeight: 1.6,
-                padding: "18px 22px",
-                fontFamily: "var(--font-mono), ui-monospace, 'Cascadia Code', Menlo, monospace",
-                transition: "background-color 0.15s ease, color 0.15s ease",
-              }}
-            />
-          ) : (
-            <div style={{ flex: 1, overflowY: "auto", padding: "18px 22px", color: text ? "var(--foreground)" : "var(--faint)", fontSize: 15, lineHeight: 1.6, whiteSpace: "pre-wrap", wordBreak: "break-word", fontFamily: "var(--font-mono), ui-monospace, 'Cascadia Code', Menlo, monospace" }}>
-              {loaded ? (text || `${ownerName} hasn't written anything here yet.`) : "loading…"}
+        {/* Left Side: Personal Wall Notepad */}
+        <div style={{
+          flex: 1,
+          minWidth: 0,
+          display: "flex",
+          flexDirection: "column",
+          padding: 24,
+          overflowY: "auto"
+        }}>
+          <div style={{
+            flex: 1,
+            background: "var(--card)",
+            border: "1px solid var(--border)",
+            borderRadius: 12,
+            boxShadow: "0 1px 3px var(--shadow)",
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden"
+          }}>
+            <div style={{
+              padding: "12px 20px",
+              background: "var(--background)",
+              borderBottom: "1px solid var(--border-soft)",
+              fontSize: 11,
+              fontFamily: "var(--font-mono)",
+              color: "var(--muted)",
+              textTransform: "uppercase",
+              letterSpacing: "0.04em"
+            }}>
+              [ Scratchpad — Only {isOwner ? "you" : ownerName} can edit ]
             </div>
-          )}
+
+            {isOwner ? (
+              <textarea
+                value={text}
+                onChange={(e) => onChange(e.target.value)}
+                disabled={!loaded}
+                placeholder={loaded ? "Your personal wall. Only you can edit this — everyone in the team can read it." : "Loading scratchpad..."}
+                spellCheck
+                style={{
+                  flex: 1,
+                  width: "100%",
+                  resize: "none",
+                  border: "none",
+                  outline: "none",
+                  background: "transparent",
+                  color: "var(--foreground)",
+                  fontSize: 14.5,
+                  lineHeight: 1.6,
+                  padding: "20px 24px",
+                  fontFamily: "var(--font-sans), system-ui, sans-serif"
+                }}
+              />
+            ) : (
+              <div style={{
+                flex: 1,
+                padding: "20px 24px",
+                color: text ? "var(--foreground)" : "var(--faint)",
+                fontSize: 14.5,
+                lineHeight: 1.6,
+                whiteSpace: "pre-wrap",
+                wordBreak: "break-word",
+                fontFamily: "var(--font-sans), system-ui, sans-serif",
+                fontStyle: text ? "normal" : "italic"
+              }}>
+                {loaded ? (text || `${ownerName} hasn't written anything here yet.`) : "Loading scratchpad..."}
+              </div>
+            )}
+          </div>
         </div>
 
-        <aside style={{ width: 340, flexShrink: 0, borderLeft: "1px solid var(--border)", background: "var(--sidebar)", display: "flex", flexDirection: "column", minHeight: 0 }}>
-          <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)" }}>
-            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--muted)", fontFamily: "var(--font-mono)" }}>
-              Message {isOwner ? "wall" : ownerName}
+        {/* Right Side: Messaging wall sidebar */}
+        <aside style={{
+          width: 340,
+          flexShrink: 0,
+          borderLeft: "1px solid var(--border)",
+          background: "var(--sidebar)",
+          display: "flex",
+          flexDirection: "column",
+          minHeight: 0
+        }}>
+          <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 2 }}>
+            <div style={{
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+              color: "var(--foreground)",
+              fontFamily: "var(--font-mono)"
+            }}>
+              Message {isOwner ? "Wall" : ownerName}
             </div>
-            <div style={{ fontSize: 11, color: "var(--faint)", marginTop: 2 }}>
+            <div style={{ fontSize: 11, color: "var(--muted)" }}>
               Anyone on the team can post here.
             </div>
           </div>

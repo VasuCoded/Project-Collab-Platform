@@ -9,16 +9,84 @@ import { ContextMenu, type MenuItem } from '@/components/context-menu'
 
 type Channel = { id: string; type: string; name: string }
 
-const typeIcon: Record<string, string> = {
-  text: '#',
-  voice_video: '🔊',
-  whiteboard: '▧',
-  board: '▢',
-  todo: '☑',
-  notes: '≡',
-  reminders: '⏰',
-  docs_sheet: '▤',
-  cubicle: '◻',
+function renderIcon(type: string) {
+  switch (type) {
+    case 'text':
+      return (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <line x1="4" y1="9" x2="20" y2="9" />
+          <line x1="4" y1="15" x2="20" y2="15" />
+          <line x1="10" y1="3" x2="8" y2="21" />
+          <line x1="16" y1="3" x2="14" y2="21" />
+        </svg>
+      )
+    case 'voice_video':
+      return (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+          <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" />
+        </svg>
+      )
+    case 'whiteboard':
+      return (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <path d="M12 20h9" />
+          <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+        </svg>
+      )
+    case 'board':
+      return (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+          <line x1="9" y1="3" x2="9" y2="21" />
+          <line x1="15" y1="3" x2="15" y2="21" />
+        </svg>
+      )
+    case 'todo':
+      return (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <polyline points="9 11 12 14 22 4" />
+          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+        </svg>
+      )
+    case 'notes':
+      return (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <polyline points="14 2 14 8 20 8" />
+          <line x1="16" y1="13" x2="8" y2="13" />
+          <line x1="16" y1="17" x2="8" y2="17" />
+        </svg>
+      )
+    case 'reminders':
+      return (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <circle cx="12" cy="12" r="10" />
+          <polyline points="12 6 12 12 16 14" />
+        </svg>
+      )
+    case 'docs_sheet':
+      return (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" />
+          <path d="M6 6h10" />
+          <path d="M6 10h10" />
+        </svg>
+      )
+    case 'cubicle':
+      return (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+          <polyline points="9 22 9 12 15 12 15 22" />
+        </svg>
+      )
+    default:
+      return (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <circle cx="12" cy="12" r="10" />
+        </svg>
+      )
+  }
 }
 
 // Channel types a user can add to a server (cubicle is auto-managed; private/dm aren't servers).
@@ -144,21 +212,92 @@ export function ChannelColumn({
   }
 
   return (
-    <aside className="app-channels" style={{ width: 220, background: 'var(--sidebar)', borderRight: '1px solid var(--border)', color: 'var(--muted)', height: '100%', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
-      <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-        <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{spaceName}</span>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexShrink: 0 }}>
+    <aside className="app-channels" style={{
+      width: 230,
+      background: 'var(--sidebar)',
+      borderRight: '1px solid var(--border)',
+      color: 'var(--muted)',
+      height: '100%',
+      display: 'flex',
+      flexDirection: 'column',
+      flexShrink: 0
+    }}>
+      {/* Sidebar Header */}
+      <div style={{
+        padding: '16px 20px',
+        borderBottom: '1px solid var(--border)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 12
+      }}>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: 10
+        }}>
+          <span style={{
+            fontFamily: 'var(--display-font)',
+            fontWeight: 800,
+            fontSize: 16,
+            color: 'var(--foreground)',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap'
+          }}>
+            {spaceName}
+          </span>
+        </div>
+
+        {/* Action pills bar */}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           {canInvite && (
             <button
               onClick={toggleInvite}
               title="Invite people"
-              style={{ background: open ? 'var(--accent-hover)' : 'var(--accent)', color: '#fff', border: 'none', borderRadius: 6, padding: '3px 9px', fontSize: 11, fontWeight: 600, cursor: 'pointer', transition: 'background-color 0.15s ease' }}
+              style={{
+                flex: 1,
+                background: open ? 'var(--accent-hover)' : 'var(--accent)',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 6,
+                padding: '5px 10px',
+                fontSize: 11,
+                fontWeight: 700,
+                fontFamily: 'var(--font-mono)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.04em',
+                cursor: 'pointer',
+                transition: 'background-color 0.15s ease',
+                textAlign: 'center'
+              }}
             >
               invite
             </button>
           )}
           {isServer && (
-            <Link href={`/${spaceId}/members`} title="Members" style={{ color: 'var(--muted)', textDecoration: 'none', fontSize: 12, transition: 'color 0.15s ease' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--foreground)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--muted)'}>
+            <Link
+              href={`/${spaceId}/members`}
+              title="Members"
+              style={{
+                flex: 1,
+                background: 'var(--card)',
+                border: '1px solid var(--border)',
+                borderRadius: 6,
+                padding: '4px 10px',
+                fontSize: 11,
+                fontWeight: 700,
+                fontFamily: 'var(--font-mono)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.04em',
+                color: 'var(--foreground)',
+                textAlign: 'center',
+                textDecoration: 'none',
+                transition: 'all 0.15s ease'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = 'var(--border-soft)'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'var(--card)'}
+            >
               members
             </Link>
           )}
@@ -166,28 +305,69 @@ export function ChannelColumn({
       </div>
 
       {open && canInvite && (
-        <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--border)', background: 'var(--background)' }}>
-          <div style={{ color: 'var(--muted)', fontSize: 11, marginBottom: 6 }}>Anyone with this link can join this server.</div>
+        <div style={{
+          padding: '12px 16px',
+          borderBottom: '1px solid var(--border)',
+          background: 'var(--background)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 8
+        }}>
+          <div style={{ color: 'var(--muted)', fontSize: 11, fontFamily: 'var(--font-mono)', textTransform: 'uppercase' }}>
+            [ Server Invite Link ]
+          </div>
           {busy && !link ? (
-            <div style={{ color: 'var(--muted)', fontSize: 12 }}>generating…</div>
+            <div style={{ color: 'var(--muted)', fontSize: 11, fontFamily: 'var(--font-mono)' }}>generating...</div>
           ) : (
             <div style={{ display: 'flex', gap: 6 }}>
               <input
                 readOnly
                 value={link}
                 onFocus={(e) => e.currentTarget.select()}
-                style={{ flex: 1, minWidth: 0, background: 'var(--background)', border: '1px solid var(--border)', borderRadius: 6, padding: '5px 8px', color: 'var(--foreground)', fontSize: 12, outline: 'none' }}
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  background: 'var(--card)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 6,
+                  padding: '5px 8px',
+                  color: 'var(--foreground)',
+                  fontSize: 11.5,
+                  fontFamily: 'var(--font-mono)',
+                  outline: 'none'
+                }}
               />
-              <button onClick={copy} style={{ background: 'var(--border-soft)', color: copied ? 'var(--success)' : 'var(--foreground)', border: '1px solid var(--border)', borderRadius: 6, padding: '5px 10px', cursor: 'pointer', fontSize: 12, flexShrink: 0, transition: 'all 0.15s ease' }}>
-                {copied ? '✓' : 'copy'}
+              <button
+                onClick={copy}
+                style={{
+                  background: 'var(--accent-soft)',
+                  color: copied ? 'var(--success)' : 'var(--accent)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 6,
+                  padding: '5px 10px',
+                  cursor: 'pointer',
+                  fontSize: 11.5,
+                  fontWeight: 700,
+                  fontFamily: 'var(--font-mono)',
+                  textTransform: 'uppercase',
+                  flexShrink: 0,
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                {copied ? 'Copied' : 'Copy'}
               </button>
             </div>
           )}
         </div>
       )}
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: 8 }}>
-        {channels.length === 0 && <div style={{ color: 'var(--faint)', fontSize: 13, padding: 8 }}>No channels yet</div>}
+      {/* Channels List */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '12px 10px' }}>
+        {channels.length === 0 && (
+          <div style={{ color: 'var(--faint)', fontSize: 12, padding: '12px 8px', fontFamily: 'var(--font-mono)', textTransform: 'uppercase' }}>
+            [ No channels yet ]
+          </div>
+        )}
         {channels.map((c) => {
           const active = c.id === activeChannelId
           const canDelete = canManage && c.type !== 'cubicle'
@@ -198,10 +378,11 @@ export function ChannelColumn({
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                borderRadius: 6,
+                borderRadius: 8,
                 background: active ? 'var(--accent-soft)' : 'transparent',
-                marginBottom: 2,
-                transition: 'background 0.15s ease'
+                marginBottom: 4,
+                position: 'relative',
+                transition: 'background 0.12s ease'
               }}
               onMouseEnter={(e) => {
                 setHovered(c.id)
@@ -212,30 +393,68 @@ export function ChannelColumn({
                 if (!active) e.currentTarget.style.background = 'transparent'
               }}
             >
+              {/* Active left indicator bar */}
+              {active && (
+                <div style={{
+                  position: 'absolute',
+                  left: 0,
+                  top: '20%',
+                  height: '60%',
+                  width: 3,
+                  background: 'var(--accent)',
+                  borderRadius: '0 4px 4px 0'
+                }} />
+              )}
+
               <Link
                 href={`/${spaceId}/${c.id}`}
                 style={{
                   display: 'flex',
-                  gap: 8,
+                  gap: 10,
                   alignItems: 'center',
                   flex: 1,
                   minWidth: 0,
-                  padding: '6px 10px',
+                  padding: '8px 12px 8px 14px',
                   textDecoration: 'none',
-                  color: active ? 'var(--accent)' : 'var(--muted)',
-                  fontWeight: active ? 600 : 400,
-                  fontSize: 14,
-                  transition: 'color 0.15s ease'
+                  color: active ? 'var(--accent)' : 'var(--foreground)',
+                  fontWeight: active ? 700 : 500,
+                  fontSize: 13.5,
+                  transition: 'color 0.12s ease'
                 }}
               >
-                <span style={{ opacity: 0.7, width: 16, textAlign: 'center' }}>{typeIcon[c.type] ?? '#'}</span>
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</span>
+                <span style={{
+                  opacity: active ? 1 : 0.5,
+                  width: 18,
+                  height: 18,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: active ? 'var(--accent)' : 'var(--muted)',
+                  flexShrink: 0
+                }}>
+                  {renderIcon(c.type)}
+                </span>
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {c.name}
+                </span>
               </Link>
               {canDelete && hovered === c.id && (
                 <button
                   onClick={() => deleteChannel(c.id, c.name)}
                   title={`Delete #${c.name}`}
-                  style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer', fontSize: 14, padding: '0 8px', flexShrink: 0 }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--muted)',
+                    cursor: 'pointer',
+                    fontSize: 14,
+                    padding: '0 10px',
+                    flexShrink: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    height: '100%'
+                  }}
                   onMouseEnter={(e) => e.currentTarget.style.color = 'var(--danger)'}
                   onMouseLeave={(e) => e.currentTarget.style.color = 'var(--muted)'}
                 >
@@ -247,37 +466,127 @@ export function ChannelColumn({
         })}
 
         {canManage && (
-          <div style={{ marginTop: 6 }}>
+          <div style={{ marginTop: 8, padding: '0 4px' }}>
             {adding ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '8px 6px', background: 'var(--background)', border: '1px solid var(--border)', borderRadius: 8 }}>
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 8,
+                padding: '12px',
+                background: 'var(--card)',
+                border: '1px solid var(--border)',
+                borderRadius: 10,
+                boxShadow: '0 2px 8px var(--shadow)'
+              }}>
+                <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--accent)', fontWeight: 700, textTransform: 'uppercase' }}>
+                  New Channel
+                </div>
                 <input
                   autoFocus
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && createChannel()}
-                  placeholder="channel name"
-                  style={{ background: 'var(--background)', border: '1px solid var(--border)', borderRadius: 6, padding: '6px 8px', color: 'var(--foreground)', fontSize: 13, outline: 'none' }}
+                  placeholder="channel-name"
+                  style={{
+                    background: 'var(--background)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 6,
+                    padding: '6px 10px',
+                    color: 'var(--foreground)',
+                    fontSize: 12.5,
+                    outline: 'none',
+                    transition: 'border-color 0.15s ease'
+                  }}
+                  onFocus={(e) => e.currentTarget.style.borderColor = 'var(--accent)'}
+                  onBlur={(e) => e.currentTarget.style.borderColor = 'var(--border)'}
                 />
-                <select value={newType} onChange={(e) => setNewType(e.target.value)} style={{ background: 'var(--background)', border: '1px solid var(--border)', borderRadius: 6, padding: '6px 8px', color: 'var(--foreground)', fontSize: 13, outline: 'none' }}>
+                <select
+                  value={newType}
+                  onChange={(e) => setNewType(e.target.value)}
+                  style={{
+                    background: 'var(--background)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 6,
+                    padding: '6px 8px',
+                    color: 'var(--foreground)',
+                    fontSize: 12.5,
+                    outline: 'none',
+                    cursor: 'pointer'
+                  }}
+                >
                   {CREATABLE.map((t) => (
                     <option key={t.type} value={t.type}>
                       {t.label}
                     </option>
                   ))}
                 </select>
-                <div style={{ display: 'flex', gap: 6 }}>
-                  <button onClick={createChannel} disabled={creating || !newName.trim()} style={{ flex: 1, background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 6, padding: '6px 8px', cursor: 'pointer', fontSize: 13, opacity: creating || !newName.trim() ? 0.6 : 1, transition: 'opacity 0.15s ease' }}>
-                    {creating ? '…' : 'Create'}
+                <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+                  <button
+                    onClick={createChannel}
+                    disabled={creating || !newName.trim()}
+                    style={{
+                      flex: 1,
+                      background: 'var(--accent)',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: 6,
+                      padding: '6px 10px',
+                      cursor: (creating || !newName.trim()) ? 'default' : 'pointer',
+                      fontSize: 12,
+                      fontWeight: 700,
+                      fontFamily: 'var(--font-mono)',
+                      textTransform: 'uppercase',
+                      opacity: creating || !newName.trim() ? 0.6 : 1,
+                      transition: 'background-color 0.15s ease'
+                    }}
+                  >
+                    {creating ? '...' : 'Create'}
                   </button>
-                  <button onClick={() => { setAdding(false); setNewName('') }} style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--muted)', borderRadius: 6, padding: '6px 10px', cursor: 'pointer', fontSize: 13 }}>
-                    ×
+                  <button
+                    onClick={() => { setAdding(false); setNewName('') }}
+                    style={{
+                      background: 'var(--border-soft)',
+                      border: '1px solid var(--border)',
+                      color: 'var(--foreground)',
+                      borderRadius: 6,
+                      padding: '6px 10px',
+                      cursor: 'pointer',
+                      fontSize: 12,
+                      fontWeight: 700,
+                      fontFamily: 'var(--font-mono)',
+                      textTransform: 'uppercase'
+                    }}
+                  >
+                    Cancel
                   </button>
                 </div>
               </div>
             ) : (
-              <button onClick={() => setAdding(true)} style={{ display: 'flex', gap: 8, alignItems: 'center', width: '100%', padding: '6px 10px', borderRadius: 6, border: 'none', background: 'transparent', color: 'var(--accent)', fontSize: 14, cursor: 'pointer', transition: 'color 0.15s ease' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--accent-hover)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--accent)'}>
-                <span style={{ width: 16, textAlign: 'center' }}>+</span>
-                <span>Add channel</span>
+              <button
+                onClick={() => setAdding(true)}
+                style={{
+                  display: 'flex',
+                  gap: 8,
+                  alignItems: 'center',
+                  width: '100%',
+                  padding: '8px 12px',
+                  borderRadius: 8,
+                  border: '1px dashed var(--border)',
+                  background: 'transparent',
+                  color: 'var(--accent)',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  fontFamily: 'var(--font-mono)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.03em',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--accent-hover)'; e.currentTarget.style.borderColor = 'var(--accent)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--accent)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
+              >
+                <span>+</span>
+                <span>Add Channel</span>
               </button>
             )}
           </div>

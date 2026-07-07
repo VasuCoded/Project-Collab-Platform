@@ -234,42 +234,141 @@ export function Chat({ channelId, channelName, me, meName, dm = false, compact =
   }
 
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", height: "100%", minWidth: 0, fontFamily: "var(--font-sans)", transition: "background-color 0.15s ease" }}>
+    <div style={{
+      flex: 1,
+      display: "flex",
+      flexDirection: "column",
+      height: "100%",
+      minWidth: 0,
+      fontFamily: "var(--font-sans)",
+      background: "var(--background)",
+      transition: "background-color 0.15s ease"
+    }}>
+      {/* Header Bar */}
       {!compact && (
-        <div style={{ padding: "12px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "baseline", gap: 12 }}>
-          <span style={{ fontWeight: 700, color: "var(--foreground)" }}>{dm ? channelName : `# ${channelName}`}</span>
-          <span style={{ fontSize: 12, color: "var(--muted)" }}>{here} here</span>
+        <div style={{
+          padding: "16px 24px",
+          borderBottom: "1px solid var(--border)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 16
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--accent)", fontWeight: 700 }}>
+              {dm ? "[DM]" : "[#]"}
+            </span>
+            <span style={{
+              fontFamily: "var(--display-font)",
+              fontSize: 18,
+              fontWeight: 800,
+              color: "var(--foreground)"
+            }}>
+              {channelName}
+            </span>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, fontFamily: "var(--font-mono)", color: "var(--muted)", textTransform: "uppercase" }}>
+            <span style={{
+              width: 6,
+              height: 6,
+              borderRadius: "50%",
+              background: "var(--accent)",
+              animation: "pulse-fast 1.8s infinite"
+            }} />
+            {here} active
+          </div>
         </div>
       )}
 
-      <div ref={scrollRef} style={{ flex: 1, overflowY: "auto", padding: compact ? "10px 14px" : "12px 20px" }}>
+      {/* Messages List Viewport */}
+      <div ref={scrollRef} style={{ flex: 1, overflowY: "auto", padding: compact ? "16px" : "24px" }}>
         {hasMore && (
-          <button onClick={loadOlder} disabled={loadingOlder} style={{ display: "block", margin: "0 auto 12px", background: "var(--card)", border: "1px solid var(--border)", color: "var(--muted)", borderRadius: 6, padding: "4px 12px", cursor: "pointer", fontSize: 12, transition: "all 0.15s ease" }}>
-            {loadingOlder ? "loading…" : "load older"}
+          <button
+            onClick={loadOlder}
+            disabled={loadingOlder}
+            style={{
+              display: "block",
+              margin: "0 auto 16px",
+              background: "var(--card)",
+              border: "1px solid var(--border)",
+              color: "var(--foreground)",
+              borderRadius: 6,
+              padding: "5px 14px",
+              cursor: "pointer",
+              fontSize: 12,
+              fontFamily: "var(--font-mono)",
+              textTransform: "uppercase",
+              letterSpacing: "0.04em",
+              transition: "all 0.15s ease"
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.background = "var(--border-soft)"}
+            onMouseLeave={(e) => e.currentTarget.style.background = "var(--card)"}
+          >
+            {loadingOlder ? "loading..." : "load older messages"}
           </button>
         )}
-        {messages.length === 0 && <div style={{ color: "var(--faint)", textAlign: "center", marginTop: 40, fontSize: 14 }}>No messages yet. Say hi 👋</div>}
+
+        {messages.length === 0 && (
+          <div style={{ color: "var(--faint)", textAlign: "center", marginTop: 48, fontSize: 14, fontFamily: "var(--font-mono)" }}>
+            [ no messages yet. say hi 👋 ]
+          </div>
+        )}
+
+        {/* Message bubble rows */}
         {messages.map((m) => (
           <div
             key={m.id}
             onMouseEnter={() => setHoverMsg(m.id)}
             onMouseLeave={() => setHoverMsg((h) => (h === m.id ? null : h))}
-            style={{ display: "flex", gap: 10, padding: "6px 0", alignItems: "flex-start" }}
+            style={{
+              display: "flex",
+              gap: 12,
+              padding: "10px 12px",
+              borderRadius: 8,
+              alignItems: "flex-start",
+              background: hoverMsg === m.id ? "var(--border-soft)" : "transparent",
+              transition: "background 0.12s ease",
+              position: "relative",
+              marginBottom: 4
+            }}
           >
+            {/* Avatar image or initials badge */}
             {m.author?.avatar_url ? (
-              <img src={m.author.avatar_url} alt="" style={{ width: 34, height: 34, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+              <img src={m.author.avatar_url} alt="" style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", flexShrink: 0, border: "1px solid var(--border)" }} />
             ) : (
-              <div style={{ width: 34, height: 34, borderRadius: "50%", background: "var(--border)", color: "var(--muted)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 600, flexShrink: 0 }}>
+              <div style={{
+                width: 36,
+                height: 36,
+                borderRadius: "50%",
+                background: "var(--accent-soft)",
+                color: "var(--accent)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 12,
+                fontWeight: 700,
+                fontFamily: "var(--font-mono)",
+                flexShrink: 0,
+                border: "1px solid rgba(14, 92, 70, 0.1)"
+              }}>
                 {(m.author?.display_name ?? "?").trim().slice(0, 2).toUpperCase() || "?"}
               </div>
             )}
+
             <div style={{ minWidth: 0, flex: 1 }}>
               <div style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
-                <b style={{ color: "var(--foreground)", fontSize: 14 }}>{m.author?.display_name ?? "Someone"}</b>
-                <span style={{ color: "var(--faint)", fontSize: 11 }}>{timeOf(m.created_at)}</span>
+                <b style={{ color: "var(--foreground)", fontSize: 14, fontWeight: 700 }}>
+                  {m.author?.display_name ?? "Someone"}
+                </b>
+                <span style={{ color: "var(--faint)", fontSize: 11, fontFamily: "var(--font-mono)" }}>
+                  {timeOf(m.created_at)}
+                </span>
               </div>
+
+              {/* Editing view */}
               {editingId === m.id ? (
-                <div style={{ marginTop: 2 }}>
+                <div style={{ marginTop: 6 }}>
                   <textarea
                     autoFocus
                     value={editText}
@@ -283,34 +382,152 @@ export function Chat({ channelId, channelName, me, meName, dm = false, compact =
                       }
                     }}
                     rows={2}
-                    style={{ width: "100%", background: "var(--background)", border: "1px solid var(--accent)", borderRadius: 8, padding: "6px 10px", color: "var(--foreground)", fontSize: 14, resize: "vertical", fontFamily: "inherit", outline: "none" }}
+                    style={{
+                      width: "100%",
+                      background: "var(--background)",
+                      border: "1px solid var(--accent)",
+                      borderRadius: 8,
+                      padding: "8px 12px",
+                      color: "var(--foreground)",
+                      fontSize: 14,
+                      resize: "vertical",
+                      fontFamily: "inherit",
+                      outline: "none"
+                    }}
                   />
-                  <div style={{ display: "flex", gap: 8, marginTop: 4, fontSize: 12, color: "var(--muted)" }}>
-                    <button onClick={() => saveEdit(m.id)} style={{ background: "var(--accent)", color: "#fff", border: "none", borderRadius: 6, padding: "3px 10px", cursor: "pointer", fontSize: 12 }}>Save</button>
-                    <button onClick={() => setEditingId(null)} style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer", fontSize: 12 }}>cancel</button>
-                    <span style={{ color: "var(--faint)" }}>Enter to save · Esc to cancel</span>
+                  <div style={{ display: "flex", gap: 8, marginTop: 4, fontSize: 11, fontFamily: "var(--font-mono)" }}>
+                    <button
+                      onClick={() => saveEdit(m.id)}
+                      style={{
+                        background: "var(--accent)",
+                        color: "#fff",
+                        border: "none",
+                        borderRadius: 4,
+                        padding: "3px 10px",
+                        cursor: "pointer",
+                        fontWeight: 700,
+                        textTransform: "uppercase"
+                      }}
+                    >
+                      Save
+                    </button>
+                    <button
+                      onClick={() => setEditingId(null)}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: "var(--muted)",
+                        cursor: "pointer",
+                        fontWeight: 700,
+                        textTransform: "uppercase"
+                      }}
+                    >
+                      Cancel
+                    </button>
+                    <span style={{ color: "var(--faint)", marginLeft: "auto" }}>
+                      Enter to save · Esc to cancel
+                    </span>
                   </div>
                 </div>
               ) : (
                 <>
                   {m.content && (
-                    <div style={{ color: "var(--foreground)", fontSize: 14, whiteSpace: "pre-wrap", wordBreak: "break-word", lineHeight: 1.5 }}>
+                    <div style={{
+                      color: "var(--foreground)",
+                      fontSize: 14.5,
+                      whiteSpace: "pre-wrap",
+                      wordBreak: "break-word",
+                      lineHeight: 1.5,
+                      marginTop: 2
+                    }}>
                       {m.content}
-                      {m.edited_at && <span style={{ color: "var(--faint)", fontSize: 11, marginLeft: 6 }}>(edited)</span>}
+                      {m.edited_at && (
+                        <span style={{
+                          color: "var(--faint)",
+                          fontSize: 10,
+                          fontFamily: "var(--font-mono)",
+                          marginLeft: 6
+                        }}>
+                          (EDITED)
+                        </span>
+                      )}
                     </div>
                   )}
-                  {m.image_url && <img src={m.image_url} alt="" style={{ maxWidth: 320, maxHeight: 320, borderRadius: 8, marginTop: 4, display: "block" }} />}
+                  {m.image_url && (
+                    <img
+                      src={m.image_url}
+                      alt=""
+                      style={{
+                        maxWidth: 320,
+                        maxHeight: 320,
+                        borderRadius: 10,
+                        marginTop: 6,
+                        display: "block",
+                        border: "1px solid var(--border)"
+                      }}
+                    />
+                  )}
                 </>
               )}
             </div>
+
+            {/* Hover Actions Float Overlay */}
             {m.author_id === me && hoverMsg === m.id && editingId !== m.id && (
-              <div style={{ display: "flex", gap: 2, flexShrink: 0, alignSelf: "flex-start" }}>
+              <div style={{
+                display: "flex",
+                gap: 2,
+                position: "absolute",
+                right: 12,
+                top: 8,
+                background: "var(--card)",
+                border: "1px solid var(--border)",
+                borderRadius: 8,
+                padding: "2px",
+                boxShadow: "0 2px 8px var(--shadow)",
+                zIndex: 10
+              }}>
                 {m.content && (
-                  <button onClick={() => startEdit(m)} title="Edit message" style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer", fontSize: 12, padding: "2px 4px" }} onMouseEnter={(e) => e.currentTarget.style.color = "var(--accent)"} onMouseLeave={(e) => e.currentTarget.style.color = "var(--muted)"}>
+                  <button
+                    onClick={() => startEdit(m)}
+                    title="Edit message"
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: "var(--muted)",
+                      cursor: "pointer",
+                      fontSize: 14,
+                      width: 26,
+                      height: 26,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      borderRadius: 6
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.color = "var(--accent)"; e.currentTarget.style.background = "var(--border-soft)"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.color = "var(--muted)"; e.currentTarget.style.background = "transparent"; }}
+                  >
                     ✎
                   </button>
                 )}
-                <button onClick={() => deleteMessage(m.id)} title="Delete message" style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer", fontSize: 13, padding: "2px 4px" }} onMouseEnter={(e) => e.currentTarget.style.color = "var(--danger)"} onMouseLeave={(e) => e.currentTarget.style.color = "var(--muted)"}>
+                <button
+                  onClick={() => deleteMessage(m.id)}
+                  title="Delete message"
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "var(--muted)",
+                    cursor: "pointer",
+                    fontSize: 14,
+                    width: 26,
+                    height: 26,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderRadius: 6
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = "var(--danger)"; e.currentTarget.style.background = "var(--danger-soft)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = "var(--muted)"; e.currentTarget.style.background = "transparent"; }}
+                >
                   🗑
                 </button>
               </div>
@@ -319,29 +536,150 @@ export function Chat({ channelId, channelName, me, meName, dm = false, compact =
         ))}
       </div>
 
-      <div style={{ minHeight: 18, padding: "0 20px", color: "var(--muted)", fontSize: 12 }}>
-        {typers.length > 0 && `${typers.join(", ")} ${typers.length === 1 ? "is" : "are"} typing…`}
+      {/* Typing indicators */}
+      <div style={{
+        minHeight: 18,
+        padding: "0 24px",
+        color: "var(--muted)",
+        fontSize: 11,
+        fontFamily: "var(--font-mono)",
+        textTransform: "uppercase",
+        letterSpacing: "0.03em"
+      }}>
+        {typers.length > 0 && `[ ${typers.join(", ")} ${typers.length === 1 ? "is" : "are"} typing... ]`}
       </div>
 
+      {/* Attachments preview */}
       {file && (
-        <div style={{ padding: "0 20px 6px", color: "var(--muted)", fontSize: 12 }}>
-          📎 {file.name}{" "}
-          <button onClick={() => setFile(null)} style={{ background: "none", border: "none", color: "var(--danger)", cursor: "pointer", fontWeight: 700 }}>
+        <div style={{
+          padding: "6px 12px",
+          margin: "0 24px 8px",
+          background: "var(--accent-soft)",
+          border: "1px solid rgba(14, 92, 70, 0.15)",
+          borderRadius: 6,
+          color: "var(--accent)",
+          fontSize: 11.5,
+          fontFamily: "var(--font-mono)",
+          width: "fit-content",
+          display: "flex",
+          alignItems: "center",
+          gap: 6
+        }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden style={{ flexShrink: 0 }}>
+            <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+          </svg>
+          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 200 }}>{file.name}</span>
+          <button
+            onClick={() => setFile(null)}
+            style={{
+              background: "none",
+              border: "none",
+              color: "var(--danger)",
+              cursor: "pointer",
+              fontWeight: 700,
+              fontSize: 14,
+              padding: "0 2px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center"
+            }}
+          >
             ×
           </button>
         </div>
       )}
 
-      <form onSubmit={send} style={{ display: "flex", gap: 8, padding: "12px 20px", borderTop: "1px solid var(--border)", alignItems: "center" }}>
-        <input value={text} onChange={(e) => onType(e.target.value)} placeholder={dm ? `Message ${channelName}` : `Message #${channelName}`} style={{ flex: 1, background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, padding: "9px 12px", color: "var(--foreground)", fontSize: 14, outline: "none" }} />
-        <label style={{ color: "var(--muted)", cursor: "pointer", fontSize: 20, transition: "color 0.15s ease" }} title="attach image" onMouseEnter={(e) => e.currentTarget.style.color = "var(--foreground)"} onMouseLeave={(e) => e.currentTarget.style.color = "var(--muted)"}>
-          📎
+      {/* Input bar */}
+      <form onSubmit={send} style={{
+        display: "flex",
+        gap: compact ? 8 : 12,
+        padding: compact ? "12px 14px" : "16px 24px",
+        borderTop: "1px solid var(--border)",
+        alignItems: "center",
+        background: "var(--card)",
+        width: "100%",
+        boxSizing: "border-box"
+      }}>
+        <input
+          value={text}
+          onChange={(e) => onType(e.target.value)}
+          placeholder={dm ? `Message ${channelName}...` : `Message #${channelName}...`}
+          style={{
+            flex: 1,
+            minWidth: 0,
+            width: "100%",
+            background: "var(--background)",
+            border: "1px solid var(--border)",
+            borderRadius: 8,
+            padding: compact ? "8px 12px" : "10px 14px",
+            color: "var(--foreground)",
+            fontSize: 14,
+            outline: "none",
+            transition: "border-color 0.15s ease"
+          }}
+          onFocus={(e) => e.currentTarget.style.borderColor = "var(--accent)"}
+          onBlur={(e) => e.currentTarget.style.borderColor = "var(--border)"}
+        />
+
+        {/* Attachment button */}
+        <label
+          style={{
+            color: "var(--muted)",
+            cursor: "pointer",
+            transition: "all 0.15s ease",
+            width: compact ? 32 : 36,
+            height: compact ? 32 : 36,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            borderRadius: 8,
+            border: "1px solid var(--border)",
+            background: "var(--background)",
+            flexShrink: 0
+          }}
+          title="Attach Image"
+          onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.color = "var(--accent)"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--muted)"; }}
+        >
+          <svg width={compact ? 16 : 20} height={compact ? 16 : 20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+          </svg>
           <input type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] ?? null)} style={{ display: "none" }} />
         </label>
-        <button type="submit" disabled={sending} style={{ background: "var(--accent)", color: "#fff", border: "none", borderRadius: 8, padding: "9px 16px", cursor: "pointer", fontSize: 14, fontWeight: 600, transition: "background-color 0.15s ease" }} onMouseEnter={(e) => e.currentTarget.style.background = "var(--accent-hover)"} onMouseLeave={(e) => e.currentTarget.style.background = "var(--accent)"}>
-          {sending ? "…" : "Send"}
+
+        {/* Send Button */}
+        <button
+          type="submit"
+          disabled={sending || (!text.trim() && !file)}
+          style={{
+            background: "var(--accent)",
+            color: "#fff",
+            border: "none",
+            borderRadius: 8,
+            padding: compact ? "8px 12px" : "10px 18px",
+            cursor: (sending || (!text.trim() && !file)) ? "default" : "pointer",
+            fontSize: 13,
+            fontWeight: 700,
+            fontFamily: "var(--font-mono)",
+            textTransform: "uppercase",
+            letterSpacing: "0.04em",
+            opacity: (sending || (!text.trim() && !file)) ? 0.6 : 1,
+            transition: "background-color 0.15s ease",
+            flexShrink: 0
+          }}
+          onMouseEnter={(e) => { if (!sending && (text.trim() || file)) e.currentTarget.style.background = "var(--accent-hover)" }}
+          onMouseLeave={(e) => { if (!sending && (text.trim() || file)) e.currentTarget.style.background = "var(--accent)" }}
+        >
+          {sending ? "Sending" : "Send"}
         </button>
       </form>
+
+      <style>{`
+        @keyframes pulse-fast {
+          0%, 100% { opacity: 0.4; transform: scale(1); }
+          50% { opacity: 1; transform: scale(1.2); }
+        }
+      `}</style>
     </div>
   );
 }

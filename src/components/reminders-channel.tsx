@@ -116,49 +116,335 @@ export function RemindersChannel({ channelId, channelName, me }: { channelId: st
     return 0;
   });
 
+  const total = items.length;
+  const completed = items.filter((r) => r.done).length;
+  const openCount = total - completed;
+  const progressPercent = total > 0 ? Math.round((completed / total) * 100) : 0;
+
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", height: "100%", minWidth: 0, background: "var(--background)", fontFamily: "var(--font-sans)", transition: "background-color 0.15s ease" }}>
-      <div style={{ padding: "12px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 12 }}>
-        <span style={{ fontWeight: 700, color: "var(--foreground)" }}>⏰ {channelName}</span>
-        <span style={{ fontSize: 12, color: "var(--muted)" }}>{items.filter((r) => !r.done).length} open</span>
+    <div style={{
+      flex: 1,
+      display: "flex",
+      flexDirection: "column",
+      height: "100%",
+      minWidth: 0,
+      background: "var(--background)",
+      fontFamily: "var(--font-sans)",
+      transition: "background-color 0.15s ease"
+    }}>
+      {/* Header with stats and progress */}
+      <div style={{
+        padding: "16px 24px",
+        borderBottom: "1px solid var(--border)",
+        display: "flex",
+        flexDirection: "column",
+        gap: 12
+      }}>
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 16
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--accent)", fontWeight: 700 }}>[⏰]</span>
+            <span style={{
+              fontFamily: "var(--display-font)",
+              fontSize: 18,
+              fontWeight: 800,
+              color: "var(--foreground)"
+            }}>
+              {channelName}
+            </span>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 11, fontFamily: "var(--font-mono)", textTransform: "uppercase" }}>
+            <span style={{
+              background: openCount > 0 ? "var(--accent-soft)" : "var(--success-soft)",
+              color: openCount > 0 ? "var(--accent)" : "var(--success)",
+              padding: "2px 8px",
+              borderRadius: 4,
+              fontWeight: 700
+            }}>
+              {openCount} {openCount === 1 ? "open reminder" : "open reminders"}
+            </span>
+            {total > 0 && (
+              <span style={{ color: "var(--muted)" }}>
+                {progressPercent}% Complete
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Progress Bar */}
+        {total > 0 && (
+          <div style={{
+            height: 4,
+            width: "100%",
+            background: "var(--border-soft)",
+            borderRadius: 2,
+            overflow: "hidden",
+            marginTop: 2
+          }}>
+            <div style={{
+              height: "100%",
+              background: "var(--accent)",
+              width: `${progressPercent}%`,
+              borderRadius: 2,
+              transition: "width 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
+            }} />
+          </div>
+        )}
       </div>
 
-      <form onSubmit={add} style={{ display: "flex", gap: 8, padding: "12px 20px", borderBottom: "1px solid var(--border)", flexWrap: "wrap" }}>
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Remind the team to…"
-          style={{ flex: "1 1 240px", minWidth: 160, background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, padding: "8px 12px", color: "var(--foreground)", fontSize: 14, outline: "none" }}
-        />
-        <input type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} title="When" style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, padding: "8px 10px", color: when ? "var(--foreground)" : "var(--muted)", fontSize: 13, outline: "none" }} />
-        <button type="submit" disabled={adding || !title.trim()} style={{ background: "var(--accent)", color: "#fff", border: "none", borderRadius: 8, padding: "8px 16px", cursor: "pointer", fontSize: 14, fontWeight: 600, opacity: adding || !title.trim() ? 0.6 : 1, transition: "background-color 0.15s ease" }} onMouseEnter={(e) => e.currentTarget.style.background = "var(--accent-hover)"} onMouseLeave={(e) => e.currentTarget.style.background = "var(--accent)"}>
-          {adding ? "…" : "Add"}
-        </button>
-      </form>
-
-      <div style={{ flex: 1, overflowY: "auto", padding: 12 }}>
-        {loading && <div style={{ color: "var(--faint)", fontSize: 13, padding: 10 }}>loading…</div>}
-        {!loading && sorted.length === 0 && <div style={{ color: "var(--faint)", fontSize: 14, textAlign: "center", marginTop: 32 }}>No reminders yet.</div>}
-        <div style={{ display: "flex", flexDirection: "column", gap: 6, maxWidth: 720, margin: "0 auto" }}>
-          {sorted.map((r) => {
-            const w = whenLabel(r.remind_at);
-            return (
-              <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", background: "var(--card)", border: "1px solid var(--border)", borderRadius: 10, boxShadow: "0 2px 4px var(--shadow)", borderLeft: `3px solid ${r.done ? "var(--border)" : w?.overdue ? "var(--danger)" : "var(--accent)"}`, transition: "transform 0.15s ease" }} onMouseEnter={(e) => e.currentTarget.style.transform = "translateY(-1px)"} onMouseLeave={(e) => e.currentTarget.style.transform = "translateY(0px)"}>
-                <button onClick={() => toggle(r)} title={r.done ? "Mark not done" : "Mark done"} style={{ width: 20, height: 20, borderRadius: "50%", border: `2px solid ${r.done ? "var(--success)" : "var(--border)"}`, background: r.done ? "var(--success)" : "transparent", color: "var(--card)", cursor: "pointer", flexShrink: 0, fontSize: 12, lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  {r.done ? "✓" : ""}
-                </button>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ color: r.done ? "var(--faint)" : "var(--foreground)", fontSize: 14, textDecoration: r.done ? "line-through" : "none", wordBreak: "break-word" }}>{r.title}</div>
-                  {w && <div style={{ color: r.done ? "var(--faint)" : w.overdue ? "var(--danger)" : "var(--muted)", fontSize: 12, marginTop: 2 }}>{w.text}</div>}
-                </div>
-                <button onClick={() => remove(r.id)} title="Delete" style={{ background: "none", border: "none", color: "var(--danger)", cursor: "pointer", fontSize: 14, flexShrink: 0 }}>
-                  ✕
+      <div style={{
+        flex: 1,
+        overflowY: "auto",
+        padding: "24px 24px 48px",
+        display: "flex",
+        flexDirection: "column",
+        gap: 24
+      }}>
+        <div style={{
+          maxWidth: 720,
+          width: "100%",
+          margin: "0 auto",
+          display: "flex",
+          flexDirection: "column",
+          gap: 24
+        }}>
+          {/* Custom Reminder Form Card */}
+          <div style={{
+            background: "var(--card)",
+            border: "1px solid var(--border)",
+            borderRadius: 12,
+            padding: 20,
+            boxShadow: "0 1px 3px var(--shadow)"
+          }}>
+            <form onSubmit={add} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, fontFamily: "var(--font-mono)", color: "var(--accent)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                Create New Reminder
+              </div>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <input
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Remind the team to…"
+                  style={{
+                    flex: "1 1 240px",
+                    minWidth: 180,
+                    background: "var(--background)",
+                    border: "1px solid var(--border)",
+                    borderRadius: 8,
+                    padding: "10px 14px",
+                    color: "var(--foreground)",
+                    fontSize: 14,
+                    outline: "none",
+                    transition: "border-color 0.15s ease"
+                  }}
+                  onFocus={(e) => e.currentTarget.style.borderColor = "var(--accent)"}
+                  onBlur={(e) => e.currentTarget.style.borderColor = "var(--border)"}
+                />
+                <input
+                  type="datetime-local"
+                  value={when}
+                  onChange={(e) => setWhen(e.target.value)}
+                  title="Reminder schedule"
+                  style={{
+                    background: "var(--background)",
+                    border: "1px solid var(--border)",
+                    borderRadius: 8,
+                    padding: "10px 12px",
+                    color: when ? "var(--foreground)" : "var(--muted)",
+                    fontSize: 13,
+                    outline: "none",
+                    cursor: "pointer",
+                    transition: "border-color 0.15s ease"
+                  }}
+                  onFocus={(e) => e.currentTarget.style.borderColor = "var(--accent)"}
+                  onBlur={(e) => e.currentTarget.style.borderColor = "var(--border)"}
+                />
+                <button
+                  type="submit"
+                  disabled={adding || !title.trim()}
+                  style={{
+                    background: "var(--accent)",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: 8,
+                    padding: "10px 20px",
+                    cursor: (adding || !title.trim()) ? "default" : "pointer",
+                    fontSize: 13,
+                    fontWeight: 700,
+                    fontFamily: "var(--font-mono)",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.04em",
+                    opacity: (adding || !title.trim()) ? 0.6 : 1,
+                    transition: "background-color 0.15s ease"
+                  }}
+                  onMouseEnter={(e) => { if (!adding && title.trim()) e.currentTarget.style.background = "var(--accent-hover)" }}
+                  onMouseLeave={(e) => { if (!adding && title.trim()) e.currentTarget.style.background = "var(--accent)" }}
+                >
+                  {adding ? "Adding..." : "Schedule"}
                 </button>
               </div>
-            );
-          })}
+            </form>
+          </div>
+
+          {/* Reminders List */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {loading && (
+              <div style={{
+                textAlign: "center",
+                padding: "24px 0",
+                color: "var(--faint)",
+                fontFamily: "var(--font-mono)",
+                fontSize: 12
+              }}>
+                [ LOADING REMINDERS... ]
+              </div>
+            )}
+
+            {!loading && sorted.length === 0 && (
+              <div style={{
+                textAlign: "center",
+                padding: "48px 24px",
+                border: "1px dashed var(--border)",
+                borderRadius: 12,
+                color: "var(--muted)",
+                fontSize: 14
+              }}>
+                No reminders scheduled yet. Add one above to notify the team.
+              </div>
+            )}
+
+            {!loading && sorted.map((r) => {
+              const w = whenLabel(r.remind_at);
+              const cardBg = r.done ? "var(--card)" : w?.overdue ? "var(--danger-soft)" : "var(--card)";
+              const leftBorderColor = r.done ? "var(--border)" : w?.overdue ? "var(--danger)" : "var(--accent)";
+
+              return (
+                <div
+                  key={r.id}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 16,
+                    padding: "16px 20px",
+                    background: cardBg,
+                    border: "1px solid var(--border)",
+                    borderLeft: `4px solid ${leftBorderColor}`,
+                    borderRadius: 12,
+                    boxShadow: "0 1px 2px var(--shadow)",
+                    transition: "all 0.15s ease",
+                    opacity: r.done ? 0.75 : 1
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = "translateY(-1px)";
+                    e.currentTarget.style.boxShadow = "0 3px 8px var(--shadow-lg)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = "translateY(0px)";
+                    e.currentTarget.style.boxShadow = "0 1px 2px var(--shadow)";
+                  }}
+                >
+                  {/* Round animated checkbox */}
+                  <button
+                    onClick={() => toggle(r)}
+                    title={r.done ? "Mark as open" : "Mark as completed"}
+                    style={{
+                      width: 22,
+                      height: 22,
+                      borderRadius: "50%",
+                      border: `2px solid ${r.done ? "var(--success)" : "var(--border)"}`,
+                      background: r.done ? "var(--success)" : "transparent",
+                      color: "#fff",
+                      cursor: "pointer",
+                      flexShrink: 0,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: 12,
+                      transition: "all 0.15s ease",
+                      padding: 0,
+                      outline: "none"
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!r.done) e.currentTarget.style.borderColor = "var(--accent)";
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!r.done) e.currentTarget.style.borderColor = "var(--border)";
+                    }}
+                  >
+                    {r.done && (
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    )}
+                  </button>
+
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{
+                      color: r.done ? "var(--faint)" : "var(--foreground)",
+                      fontSize: 14.5,
+                      fontWeight: r.done ? 500 : 600,
+                      textDecoration: r.done ? "line-through" : "none",
+                      wordBreak: "break-word",
+                      lineHeight: 1.4
+                    }}>
+                      {r.title}
+                    </div>
+                    {w && (
+                      <div style={{
+                        color: r.done ? "var(--faint)" : w.overdue ? "var(--danger)" : "var(--muted)",
+                        fontSize: 11,
+                        fontFamily: "var(--font-mono)",
+                        marginTop: 4,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.03em"
+                      }}>
+                        {w.text}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Delete button */}
+                  <button
+                    onClick={() => remove(r.id)}
+                    title="Remove reminder"
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      color: "var(--danger)",
+                      cursor: "pointer",
+                      fontSize: 16,
+                      flexShrink: 0,
+                      padding: 8,
+                      opacity: 0.5,
+                      transition: "all 0.15s ease",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      borderRadius: 6
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.opacity = "1";
+                      e.currentTarget.style.background = "var(--danger-soft)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.opacity = "0.5";
+                      e.currentTarget.style.background = "transparent";
+                    }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>
   );
 }
+

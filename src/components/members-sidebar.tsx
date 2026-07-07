@@ -39,47 +39,184 @@ export function MembersSidebar({ members, me }: { members: SpaceMember[]; me: st
   }
 
   return (
-    <aside style={{ width: 232, flexShrink: 0, borderLeft: '1px solid var(--border)', background: 'var(--sidebar)', height: '100%', overflowY: 'auto', padding: '14px 10px' }}>
-      <div style={{ padding: '0 8px 12px', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--muted)', fontFamily: 'var(--font-mono)' }}>
-        Members — {members.length}
+    <aside style={{
+      width: 232,
+      flexShrink: 0,
+      borderLeft: '1px solid var(--border)',
+      background: 'var(--sidebar)',
+      height: '100%',
+      overflowY: 'auto',
+      padding: '20px 12px',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 16
+    }}>
+      {/* Sidebar Header */}
+      <div style={{
+        padding: '0 8px 12px',
+        fontSize: 11,
+        fontWeight: 700,
+        letterSpacing: '0.08em',
+        textTransform: 'uppercase',
+        color: 'var(--foreground)',
+        fontFamily: 'var(--font-mono)',
+        borderBottom: '1px solid var(--border)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between'
+      }}>
+        <span>Team Members</span>
+        <span style={{
+          background: 'var(--accent-soft)',
+          color: 'var(--accent)',
+          padding: '2px 8px',
+          borderRadius: 4,
+          fontSize: 10,
+        }}>
+          {members.length}
+        </span>
       </div>
 
-      {groups.map(({ role, list }) => (
-        <div key={role} style={{ marginBottom: 14 }}>
-          <div style={{ padding: '0 8px 6px', fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--faint)', fontFamily: 'var(--font-mono)' }}>
-            {ROLE_LABEL[role] ?? role} — {list.length}
-          </div>
-          {list.map((m) => {
-            const name = m.profiles?.display_name ?? 'Member'
-            const self = m.user_id === me
-            return (
-              <button
-                key={m.user_id}
-                onClick={() => message(m.user_id)}
-                disabled={self || dmBusy === m.user_id}
-                title={self ? 'You' : `Message ${name}`}
-                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '6px 8px', borderRadius: 6, border: 'none', background: 'transparent', cursor: self ? 'default' : 'pointer', textAlign: 'left', transition: 'background 0.12s ease' }}
-                onMouseEnter={(e) => { if (!self) e.currentTarget.style.background = 'var(--border-soft)' }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
-              >
-                {m.profiles?.avatar_url ? (
-                  <img src={m.profiles.avatar_url} alt="" style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
-                ) : (
-                  <span style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--border-soft)', color: 'var(--muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, fontFamily: 'var(--font-mono)', flexShrink: 0 }}>{initials(name)}</span>
-                )}
-                <span style={{ minWidth: 0, flex: 1 }}>
-                  <span style={{ display: 'block', fontSize: 13, fontWeight: 500, color: 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {name}{self && <span style={{ color: 'var(--faint)', fontWeight: 400 }}> (you)</span>}
-                  </span>
-                  {m.profiles?.status_line && (
-                    <span style={{ display: 'block', fontSize: 11, color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.profiles.status_line}</span>
-                  )}
-                </span>
-              </button>
-            )
-          })}
-        </div>
-      ))}
+      {/* Member Groups */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {groups.map(({ role, list }) => {
+          // Define role-specific border / dot color
+          let roleColor = 'var(--border)';
+          if (role === 'owner') roleColor = 'var(--warning)';
+          else if (role === 'admin') roleColor = '#8b5cf6';
+          else if (role === 'moderator') roleColor = '#3b82f6';
+
+          return (
+            <div key={role}>
+              {/* Group Header */}
+              <div style={{
+                padding: '0 8px 6px',
+                fontSize: 9,
+                fontWeight: 700,
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                color: 'var(--faint)',
+                fontFamily: 'var(--font-mono)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6
+              }}>
+                <span style={{ width: 4, height: 4, borderRadius: '50%', background: roleColor }} />
+                <span>{ROLE_LABEL[role] ?? role}</span>
+                <span style={{ opacity: 0.5 }}>—</span>
+                <span>{list.length}</span>
+              </div>
+
+              {/* Group List */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {list.map((m) => {
+                  const name = m.profiles?.display_name ?? 'Member'
+                  const self = m.user_id === me
+                  return (
+                    <button
+                      key={m.user_id}
+                      onClick={() => message(m.user_id)}
+                      disabled={self || dmBusy === m.user_id}
+                      title={self ? 'You' : `Message ${name}`}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        width: '100%',
+                        padding: '8px',
+                        borderRadius: 8,
+                        border: 'none',
+                        background: 'transparent',
+                        cursor: self ? 'default' : 'pointer',
+                        textAlign: 'left',
+                        transition: 'all 0.12s ease'
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!self) {
+                          e.currentTarget.style.background = 'var(--border-soft)'
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'transparent'
+                      }}
+                    >
+                      {/* Avatar with role outline */}
+                      {m.profiles?.avatar_url ? (
+                        <img src={m.profiles.avatar_url} alt="" style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: `2px solid ${roleColor}` }} />
+                      ) : (
+                        <span style={{
+                          width: 28,
+                          height: 28,
+                          borderRadius: '50%',
+                          background: 'var(--accent-soft)',
+                          color: 'var(--accent)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: 10,
+                          fontWeight: 700,
+                          fontFamily: 'var(--font-mono)',
+                          flexShrink: 0,
+                          border: `2px solid ${roleColor}`
+                        }}>
+                          {initials(name)}
+                        </span>
+                      )}
+
+                      {/* Display name & status */}
+                      <span style={{ minWidth: 0, flex: 1 }}>
+                        <span style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          fontSize: 13,
+                          fontWeight: 600,
+                          color: 'var(--foreground)',
+                        }}>
+                          <span style={{
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            flex: 1
+                          }}>
+                            {name}
+                          </span>
+                          {self && (
+                            <span style={{
+                              fontSize: 9,
+                              fontFamily: 'var(--font-mono)',
+                              color: 'var(--faint)',
+                              fontWeight: 400,
+                              textTransform: 'uppercase'
+                            }}>
+                              (You)
+                            </span>
+                          )}
+                        </span>
+                        {m.profiles?.status_line && (
+                          <span style={{
+                            display: 'block',
+                            fontSize: 11,
+                            color: 'var(--muted)',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            marginTop: 1,
+                            fontStyle: 'italic'
+                          }}>
+                            &ldquo;{m.profiles.status_line}&rdquo;
+                          </span>
+                        )}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })}
+      </div>
     </aside>
   )
 }
+

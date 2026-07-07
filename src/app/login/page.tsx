@@ -98,8 +98,8 @@ export default function LoginPage() {
           <div style={{ width: 28, height: 28, borderRadius: 6, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: 13 }}>CP</div>
           <span style={{ fontWeight: 800, fontSize: 16, fontFamily: 'var(--display-font)', color: 'var(--foreground)' }}>Collab Platform</span>
         </Link>
-        <div style={{ position: 'relative', zIndex: 2, transform: 'scale(1.34)', transformOrigin: 'center' }}>
-          <div className="login-board-enter">
+        <div style={{ position: 'absolute', inset: 0, zIndex: 1, width: '100%', height: '100%' }}>
+          <div className="login-board-enter" style={{ width: '100%', height: '100%' }}>
             <LoginBoard />
           </div>
         </div>

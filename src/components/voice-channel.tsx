@@ -41,12 +41,54 @@ function Tile({ name, stream, muted, you }: { name: string; stream: MediaStream 
     if (ref.current && stream) ref.current.srcObject = stream;
   }, [stream]);
   return (
-    <div style={{ position: "relative", background: "var(--card)", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden", aspectRatio: "16 / 10", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 12px var(--shadow)" }}>
+    <div style={{
+      position: "relative",
+      background: "var(--card)",
+      border: "1px solid var(--border)",
+      borderRadius: 12,
+      overflow: "hidden",
+      aspectRatio: "16 / 10",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      boxShadow: "0 1px 3px var(--shadow)",
+      transition: "all 0.2s ease"
+    }}>
       <video ref={ref} autoPlay playsInline muted={muted} style={{ width: "100%", height: "100%", objectFit: "cover", display: hasVideo ? "block" : "none" }} />
       {!hasVideo && (
-        <div style={{ width: 64, height: 64, borderRadius: "50%", background: "var(--accent)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, fontWeight: 700 }}>{initials(name)}</div>
+        <div style={{
+          width: 56,
+          height: 56,
+          borderRadius: "50%",
+          background: "var(--accent-soft)",
+          color: "var(--accent)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: 18,
+          fontWeight: 700,
+          fontFamily: "var(--font-mono)",
+          border: "1px solid rgba(14, 92, 70, 0.1)"
+        }}>
+          {initials(name)}
+        </div>
       )}
-      <span style={{ position: "absolute", left: 8, bottom: 8, background: "rgba(0,0,0,0.6)", color: "#fff", fontSize: 12, padding: "2px 8px", borderRadius: 6 }}>
+      <span style={{
+        position: "absolute",
+        left: 10,
+        bottom: 10,
+        background: "rgba(15, 17, 15, 0.75)",
+        backdropFilter: "blur(8px)",
+        border: "1px solid rgba(255, 255, 255, 0.08)",
+        color: "#fff",
+        fontSize: 11,
+        fontWeight: 600,
+        padding: "3px 10px",
+        borderRadius: 6,
+        fontFamily: "var(--font-mono)",
+        textTransform: "uppercase",
+        letterSpacing: "0.03em"
+      }}>
         {name}
         {you ? " (you)" : ""}
       </span>
@@ -223,42 +265,287 @@ export function VoiceChannel({ channelId, channelName, me, meName }: { channelId
   const hasCamTrack = !!localStream?.getVideoTracks().length;
 
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", height: "100%", minWidth: 0, background: "var(--background)", fontFamily: "var(--font-sans)", transition: "background-color 0.15s ease" }}>
-      <div style={{ padding: "12px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "baseline", gap: 12 }}>
-        <span style={{ fontWeight: 700, color: "var(--foreground)" }}>🔊 {channelName}</span>
-        {joined && <span style={{ fontSize: 12, color: "var(--muted)" }}>{peers.length + 1} in call</span>}
+    <div style={{
+      flex: 1,
+      display: "flex",
+      flexDirection: "column",
+      height: "100%",
+      minWidth: 0,
+      background: "var(--background)",
+      fontFamily: "var(--font-sans)",
+      transition: "background-color 0.15s ease"
+    }}>
+      {/* Header bar */}
+      <div style={{
+        padding: "16px 24px",
+        borderBottom: "1px solid var(--border)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 16
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--accent)", fontWeight: 700 }}>[🔊]</span>
+          <span style={{
+            fontFamily: "var(--display-font)",
+            fontSize: 18,
+            fontWeight: 800,
+            color: "var(--foreground)"
+          }}>
+            {channelName}
+          </span>
+        </div>
+
+        {joined && (
+          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, fontFamily: "var(--font-mono)", color: "var(--muted)", textTransform: "uppercase" }}>
+            <span style={{
+              width: 6,
+              height: 6,
+              borderRadius: "50%",
+              background: "var(--success)",
+              animation: "pulse-fast 1.8s infinite"
+            }} />
+            {peers.length + 1} connected
+          </div>
+        )}
       </div>
 
       {!joined ? (
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16 }}>
-          <div style={{ color: "var(--foreground)", fontSize: 16, fontWeight: 600 }}>Ready to join {channelName}?</div>
-          <div style={{ display: "flex", gap: 10 }}>
-            <button onClick={() => join(false)} disabled={connecting} style={{ background: "var(--accent)", color: "#fff", border: "none", borderRadius: 10, padding: "10px 20px", fontSize: 14, cursor: "pointer", fontWeight: 600, transition: "background-color 0.15s ease" }} onMouseEnter={(e) => e.currentTarget.style.background = "var(--accent-hover)"} onMouseLeave={(e) => e.currentTarget.style.background = "var(--accent)"}>
-              {connecting ? "…" : "Join with mic"}
-            </button>
-            <button onClick={() => join(true)} disabled={connecting} style={{ background: "var(--accent-soft)", color: "var(--accent)", border: "1px solid var(--border)", borderRadius: 10, padding: "10px 20px", fontSize: 14, cursor: "pointer", fontWeight: 600, transition: "all 0.15s ease" }} onMouseEnter={(e) => e.currentTarget.style.background = "var(--border)"} onMouseLeave={(e) => e.currentTarget.style.background = "var(--accent-soft)"}>
-              Join with camera
-            </button>
+        <div style={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: 24
+        }}>
+          {/* Lobby Join Card */}
+          <div style={{
+            background: "var(--card)",
+            border: "1px solid var(--border)",
+            borderRadius: 12,
+            boxShadow: "0 1px 3px var(--shadow)",
+            padding: "36px 40px",
+            textAlign: "center",
+            maxWidth: 440,
+            width: "100%",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 20
+          }}>
+            <div style={{
+              width: 56,
+              height: 56,
+              borderRadius: "50%",
+              background: "var(--accent-soft)",
+              color: "var(--accent)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center"
+            }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+                <path d="M19 10v1a7 7 0 0 1-14 0v-1" />
+                <line x1="12" y1="19" x2="12" y2="22" />
+              </svg>
+            </div>
+            <div>
+              <h3 style={{
+                fontFamily: "var(--display-font)",
+                fontSize: 20,
+                fontWeight: 800,
+                color: "var(--foreground)",
+                margin: 0
+              }}>
+                Ready to Join?
+              </h3>
+              <p style={{ fontSize: 13, color: "var(--muted)", margin: "6px 0 0 0", lineHeight: 1.4 }}>
+                Enter the voice channel &ldquo;{channelName}&rdquo; to start speaking with other active team members.
+              </p>
+            </div>
+
+            <div style={{ display: "flex", gap: 10, width: "100%", marginTop: 4 }}>
+              <button
+                onClick={() => join(false)}
+                disabled={connecting}
+                style={{
+                  flex: 1,
+                  background: "var(--accent)",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 8,
+                  padding: "10px 16px",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  fontFamily: "var(--font-mono)",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.04em",
+                  transition: "background-color 0.15s ease"
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = "var(--accent-hover)"}
+                onMouseLeave={(e) => e.currentTarget.style.background = "var(--accent)"}
+              >
+                {connecting ? "Connecting..." : "Voice Only"}
+              </button>
+              <button
+                onClick={() => join(true)}
+                disabled={connecting}
+                style={{
+                  flex: 1,
+                  background: "var(--accent-soft)",
+                  color: "var(--accent)",
+                  border: "1px solid var(--border)",
+                  borderRadius: 8,
+                  padding: "10px 16px",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  fontFamily: "var(--font-mono)",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.04em",
+                  transition: "all 0.15s ease"
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = "var(--border)"}
+                onMouseLeave={(e) => e.currentTarget.style.background = "var(--accent-soft)"}
+              >
+                With Camera
+              </button>
+            </div>
+
+            <div style={{ fontSize: 11, fontFamily: "var(--font-mono)", color: "var(--faint)", textTransform: "uppercase", letterSpacing: "0.05em", marginTop: 4 }}>
+              [ service // p2p mesh rtc ]
+            </div>
           </div>
-          <div style={{ color: "var(--faint)", fontSize: 12 }}>Peer-to-peer · best for small groups</div>
         </div>
       ) : (
         <>
-          <div style={{ flex: 1, overflow: "auto", padding: 16, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 12, alignContent: "start" }}>
+          {/* Active meeting video grid */}
+          <div style={{
+            flex: 1,
+            overflowY: "auto",
+            padding: 24,
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+            gap: 16,
+            alignContent: "start"
+          }}>
             <Tile name={meName} stream={localStream} muted you />
             {peers.map((p) => (
               <Tile key={p.id} name={p.name} stream={p.stream} />
             ))}
           </div>
-          <div style={{ display: "flex", gap: 10, justifyContent: "center", padding: "14px 20px", borderTop: "1px solid var(--border)" }}>
-            <button onClick={toggleMic} style={ctlBtn(micOn)}>{micOn ? "🎙 Mute" : "🔇 Unmute"}</button>
-            {hasCamTrack && <button onClick={toggleCam} style={ctlBtn(camOn)}>{camOn ? "📷 Camera off" : "📷 Camera on"}</button>}
-            <button onClick={leave} style={{ background: "var(--danger)", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontSize: 14, cursor: "pointer", fontWeight: 600, transition: "background-color 0.15s ease" }} onMouseEnter={(e) => e.currentTarget.style.background = "var(--accent-hover)"} onMouseLeave={(e) => e.currentTarget.style.background = "var(--danger)"}>
-              Leave
+
+          {/* Call Controls Floating Bar */}
+          <div style={{
+            display: "flex",
+            gap: 12,
+            justifyContent: "center",
+            alignItems: "center",
+            padding: "16px 24px",
+            background: "var(--card)",
+            borderTop: "1px solid var(--border)",
+            zIndex: 10
+          }}>
+            <button
+              onClick={toggleMic}
+              style={{
+                background: micOn ? "var(--accent-soft)" : "var(--border-soft)",
+                color: micOn ? "var(--accent)" : "var(--foreground)",
+                border: "1px solid var(--border)",
+                borderRadius: 8,
+                padding: "8px 16px",
+                fontSize: 13,
+                cursor: "pointer",
+                fontWeight: 700,
+                fontFamily: "var(--font-mono)",
+                textTransform: "uppercase",
+                letterSpacing: "0.03em",
+                transition: "all 0.15s ease",
+                display: "flex",
+                alignItems: "center",
+                gap: 6
+              }}
+            >
+              {micOn ? (
+                <>
+                  <span style={{ fontSize: 14 }}>🎙</span> Mic Active
+                </>
+              ) : (
+                <>
+                  <span style={{ fontSize: 14 }}>🔇</span> Mic Muted
+                </>
+              )}
+            </button>
+
+            {hasCamTrack && (
+              <button
+                onClick={toggleCam}
+                style={{
+                  background: camOn ? "var(--accent-soft)" : "var(--border-soft)",
+                  color: camOn ? "var(--accent)" : "var(--foreground)",
+                  border: "1px solid var(--border)",
+                  borderRadius: 8,
+                  padding: "8px 16px",
+                  fontSize: 13,
+                  cursor: "pointer",
+                  fontWeight: 700,
+                  fontFamily: "var(--font-mono)",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.03em",
+                  transition: "all 0.15s ease",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6
+                }}
+              >
+                {camOn ? (
+                  <>
+                    <span style={{ fontSize: 14 }}>📷</span> Video On
+                  </>
+                ) : (
+                  <>
+                    <span style={{ fontSize: 14 }}>📹</span> Video Off
+                  </>
+                )}
+              </button>
+            )}
+
+            <button
+              onClick={leave}
+              style={{
+                background: "var(--danger)",
+                color: "#fff",
+                border: "none",
+                borderRadius: 8,
+                padding: "8px 18px",
+                fontSize: 13,
+                cursor: "pointer",
+                fontWeight: 700,
+                fontFamily: "var(--font-mono)",
+                textTransform: "uppercase",
+                letterSpacing: "0.04em",
+                transition: "background-color 0.15s ease",
+                display: "flex",
+                alignItems: "center",
+                gap: 6
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = "#991b1b"}
+              onMouseLeave={(e) => e.currentTarget.style.background = "var(--danger)"}
+            >
+              Disconnect
             </button>
           </div>
         </>
       )}
+
+      <style>{`
+        @keyframes pulse-fast {
+          0%, 100% { opacity: 0.4; transform: scale(1); }
+          50% { opacity: 1; transform: scale(1.2); }
+        }
+      `}</style>
     </div>
   );
 }
