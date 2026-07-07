@@ -83,3 +83,25 @@ export async function getDmPeers(dmSpaceIds: string[], meId: string) {
   }
   return map;
 }
+
+export type DmListItem = { id: string; name: string | null; avatar: string | null; unread: number; lastAt: string | null };
+
+// Every DM conversation for the current user, most recently active first.
+export const getDmList = cache(async (meId: string): Promise<DmListItem[]> => {
+  const supabase = await createClient();
+  const [{ data: spaces }, unread] = await Promise.all([
+    supabase.from("spaces").select("id, name").eq("type", "dm"),
+    getUnreadBySpace(),
+  ]);
+  const dmSpaces = spaces ?? [];
+  const peers = await getDmPeers(dmSpaces.map((d) => d.id), meId);
+  return dmSpaces
+    .map((d) => ({
+      id: d.id,
+      name: peers.get(d.id)?.name ?? d.name,
+      avatar: peers.get(d.id)?.avatar ?? null,
+      unread: unread.get(d.id)?.unread ?? 0,
+      lastAt: unread.get(d.id)?.last ?? null,
+    }))
+    .sort((a, b) => (b.lastAt ?? "").localeCompare(a.lastAt ?? ""));
+});
