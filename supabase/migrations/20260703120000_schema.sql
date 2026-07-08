@@ -366,6 +366,26 @@ begin
 end;
 $$;
 
+-- Add a channel through a DEFINER function (same pattern as create_server_with_template).
+-- The direct client insert is blocked by the channels RLS policy, so the "Add Channel"
+-- UI calls this instead; it does its own owner/admin check and inserts as definer.
+create or replace function public.create_channel(p_space_id uuid, p_type text, p_name text)
+returns uuid language plpgsql security definer set search_path = public as $$
+declare v_uid uuid := auth.uid(); v_id uuid; v_pos int;
+begin
+  if v_uid is null then raise exception 'not authenticated'; end if;
+  if not public.has_space_role(p_space_id, v_uid, array['owner','admin']::public.member_role[]) then
+    raise exception 'only owners and admins can add channels';
+  end if;
+  select coalesce(max(position) + 1, 0) into v_pos from public.channels where space_id = p_space_id;
+  insert into public.channels (space_id, type, name, position)
+    values (p_space_id, p_type::public.channel_type, p_name, v_pos)
+    returning id into v_id;
+  return v_id;
+end;
+$$;
+grant execute on function public.create_channel(uuid, text, text) to authenticated;
+
 -- =============================================================================
 -- GRANTS — the authenticated role needs table + function access; RLS still gates rows.
 -- =============================================================================

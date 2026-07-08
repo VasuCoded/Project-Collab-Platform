@@ -179,11 +179,9 @@ export function ChannelColumn({
     const name = newName.trim()
     if (!name || creating) return
     setCreating(true)
-    const { data, error } = await supabase
-      .from('channels')
-      .insert({ space_id: spaceId, type: newType, name, position: channels.length })
-      .select('id')
-      .single()
+    // Channel inserts go through a SECURITY DEFINER rpc (like create_server_with_template)
+    // because the direct insert path is blocked by the channels RLS policy.
+    const { data, error } = await supabase.rpc('create_channel', { p_space_id: spaceId, p_type: newType, p_name: name })
     setCreating(false)
     if (error) {
       ui.alert(error.message, 'Error')
@@ -192,7 +190,7 @@ export function ChannelColumn({
     ui.toast(`#${name} channel created!`, 'success')
     setNewName('')
     setAdding(false)
-    router.push(`/${spaceId}/${data.id}`)
+    router.push(`/${spaceId}/${data}`)
     router.refresh() // pull the new channel into the server-rendered list
   }
 
