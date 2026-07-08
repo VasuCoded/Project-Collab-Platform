@@ -85,11 +85,10 @@ export function Desk({
       fontFamily: 'var(--font-sans)',
       position: 'relative',
     }}>
-      <div style={{
+      <div className="desk-wrap" style={{
         position: 'relative',
         maxWidth: 1080,
         margin: '0 auto',
-        padding: '40px 32px 80px',
         display: 'flex',
         flexDirection: 'column',
         gap: 24,
@@ -174,9 +173,8 @@ export function Desk({
           </button>
         </header>
 
-        <section style={{
+        <section className="desk-stats" style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
           gap: 16,
           background: 'var(--card)',
           border: '1px solid var(--border)',
@@ -239,9 +237,8 @@ export function Desk({
           </div>
         </section>
 
-        <div style={{
+        <div className="desk-cols" style={{
           display: 'grid',
-          gridTemplateColumns: '1.5fr 1fr',
           gap: 24,
           alignItems: 'start',
         }}>

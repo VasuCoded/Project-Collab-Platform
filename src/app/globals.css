@@ -374,6 +374,16 @@ body {
   }
 }
 
+.desk-wrap { padding: 40px 32px 80px; width: 100%; }
+.desk-stats { grid-template-columns: repeat(4, 1fr); }
+.desk-cols { grid-template-columns: 1.5fr 1fr; }
+
+@media (max-width: 768px) {
+  .desk-wrap { padding: 24px 16px 60px; }
+  .desk-stats { grid-template-columns: repeat(2, 1fr); }
+  .desk-cols { grid-template-columns: 1fr; }
+}
+
 .hero-container {
   display: grid;
   grid-template-columns: 1.15fr 0.85fr;
