@@ -254,6 +254,8 @@ body {
   font-family: var(--font-mono), monospace;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  white-space: nowrap;
+  text-align: center;
 }
 
 .landing-nav-btn:hover {
@@ -346,12 +348,22 @@ body {
   }
   .grid-header-logo {
     border-right: none;
+    padding: 12px 14px;
+    gap: 8px;
+  }
+  .grid-header-logo span {
+    font-size: 16px;
   }
   .grid-header-nav {
     display: none;
   }
   .grid-header-actions {
     border-left: none;
+    padding: 12px 14px;
+    gap: 12px;
+  }
+  .landing-nav-btn {
+    padding: 6px 12px;
   }
   .login-left {
     display: none !important;
