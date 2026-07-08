@@ -15,10 +15,11 @@ export default async function SpaceLayout({
   const { spaceId } = await params
   const user = await getCurrentUser() // cache hit: resolved in the main layout
 
-  const [space, channels, role] = await Promise.all([
+  const [space, channels, role, allMembers] = await Promise.all([
     getSpace(spaceId),
     getSpaceChannels(spaceId),
     user ? getMyRole(spaceId, user.id) : Promise.resolve(null),
+    user ? getSpaceMembers(spaceId) : Promise.resolve([]),
   ])
   if (!space) notFound()
 
@@ -40,7 +41,7 @@ export default async function SpaceLayout({
   const canManage =
     (space.type === 'server' && (role === 'owner' || role === 'admin')) || (space.type === 'private' && role === 'owner')
 
-  const members = space.type === 'server' && user ? await getSpaceMembers(spaceId) : []
+  const members = space.type === 'server' && user ? allMembers : []
 
   return (
     <div style={{ display: 'flex', flex: 1, minWidth: 0, height: '100%' }}>
