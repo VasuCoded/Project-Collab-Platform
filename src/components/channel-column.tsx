@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useUI } from '@/components/ui-provider'
 import { ContextMenu, type MenuItem } from '@/components/context-menu'
@@ -134,6 +134,37 @@ export function ChannelColumn({
   const [hovered, setHovered] = useState<string | null>(null)
   const [menu, setMenu] = useState<{ x: number; y: number; channel: Channel } | null>(null)
   const [spaceMenu, setSpaceMenu] = useState<{ x: number; y: number } | null>(null)
+  const [items, setItems] = useState<Channel[]>(channels)
+  const dragId = useRef<string | null>(null)
+  // resync the local order whenever the server sends a fresh channel list (add / delete / reordered)
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { setItems(channels) }, [channels])
+
+  function onDragStart(e: React.DragEvent, id: string) {
+    dragId.current = id
+    e.dataTransfer.effectAllowed = 'move'
+  }
+  function onDragOver(e: React.DragEvent, overId: string) {
+    e.preventDefault()
+    const from = dragId.current
+    if (!from || from === overId) return
+    setItems((prev) => {
+      const arr = [...prev]
+      const fi = arr.findIndex((c) => c.id === from)
+      const oi = arr.findIndex((c) => c.id === overId)
+      if (fi < 0 || oi < 0) return prev
+      const [moved] = arr.splice(fi, 1)
+      arr.splice(oi, 0, moved)
+      return arr
+    })
+  }
+  async function onDrop() {
+    dragId.current = null
+    const changed = items.some((c, i) => channels[i]?.id !== c.id)
+    if (!changed) return
+    await Promise.all(items.map((c, i) => supabase.from('channels').update({ position: i }).eq('id', c.id)))
+    router.refresh()
+  }
 
   function copyChannelLink(id: string) {
     navigator.clipboard?.writeText(`${window.location.origin}/${spaceId}/${id}`)
@@ -380,18 +411,23 @@ export function ChannelColumn({
           setSpaceMenu({ x: e.clientX, y: e.clientY })
         }}
       >
-        {channels.length === 0 && (
+        {items.length === 0 && (
           <div style={{ color: 'var(--faint)', fontSize: 12, padding: '12px 8px', fontFamily: 'var(--font-mono)', textTransform: 'uppercase' }}>
             [ No channels yet ]
           </div>
         )}
-        {channels.map((c) => {
+        {items.map((c) => {
           const active = c.id === activeChannelId
           const canDelete = canManage && c.type !== 'cubicle'
           return (
             <div
               key={c.id}
               data-chan
+              draggable={canManage}
+              onDragStart={(e) => onDragStart(e, c.id)}
+              onDragOver={(e) => onDragOver(e, c.id)}
+              onDrop={onDrop}
+              onDragEnd={() => { dragId.current = null }}
               onContextMenu={(e) => { e.preventDefault(); setMenu({ x: e.clientX, y: e.clientY, channel: c }) }}
               style={{
                 display: 'flex',
@@ -400,6 +436,7 @@ export function ChannelColumn({
                 background: active ? 'var(--accent-soft)' : 'transparent',
                 marginBottom: 4,
                 position: 'relative',
+                cursor: canManage ? 'grab' : undefined,
                 transition: 'background 0.12s ease'
               }}
               onMouseEnter={(e) => {
@@ -426,6 +463,7 @@ export function ChannelColumn({
 
               <Link
                 href={`/${spaceId}/${c.id}`}
+                draggable={false}
                 style={{
                   display: 'flex',
                   gap: 10,

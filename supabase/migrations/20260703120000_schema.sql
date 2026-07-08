@@ -386,6 +386,20 @@ end;
 $$;
 grant execute on function public.create_channel(uuid, text, text) to authenticated;
 
+-- Owner can delete a whole team (cascades to channels/members/messages).
+create or replace function public.delete_space(p_space_id uuid)
+returns void language plpgsql security definer set search_path = public as $$
+declare v_uid uuid := auth.uid();
+begin
+  if v_uid is null then raise exception 'not authenticated'; end if;
+  if not public.has_space_role(p_space_id, v_uid, array['owner']::public.member_role[]) then
+    raise exception 'only the owner can delete this team';
+  end if;
+  delete from public.spaces where id = p_space_id;
+end;
+$$;
+grant execute on function public.delete_space(uuid) to authenticated;
+
 -- =============================================================================
 -- GRANTS — the authenticated role needs table + function access; RLS still gates rows.
 -- =============================================================================

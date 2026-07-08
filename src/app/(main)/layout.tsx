@@ -12,7 +12,7 @@ export default async function MainLayout({ children }: { children: ReactNode }) 
   const supabase = await createClient()
   const [profile, { data: spaces }, unread] = await Promise.all([
     getProfile(user.id),
-    supabase.from('spaces').select('id, type, name').order('created_at'),
+    supabase.from('spaces').select('id, type, name, created_by').order('created_at'),
     getUnreadBySpace(),
   ])
 

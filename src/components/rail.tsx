@@ -11,7 +11,7 @@ import { useUI } from '@/components/ui-provider'
 import { Badge } from '@/components/badge'
 import { ContextMenu, type MenuItem } from '@/components/context-menu'
 
-type Space = { id: string; type: string; name: string | null }
+type Space = { id: string; type: string; name: string | null; created_by?: string | null }
 type Dm = { id: string; type: string; name: string | null; avatar: string | null; unread: number; lastAt: string | null }
 type Profile = { display_name: string | null; avatar_url: string | null }
 
@@ -201,13 +201,29 @@ export function Rail({
     else router.refresh()
   }
 
+  async function deleteServer(spaceId: string) {
+    const ok = await ui.confirm('Delete this team for everyone? All its channels and messages are permanently removed. This cannot be undone.', 'Delete team')
+    if (!ok) return
+    const { error } = await supabase.rpc('delete_space', { p_space_id: spaceId })
+    if (error) { ui.alert(error.message, 'Error'); return }
+    ui.toast('Team deleted.', 'success')
+    if (spaceId === activeSpaceId) window.location.href = '/desk'
+    else router.refresh()
+  }
+
   function serverMenuItems(space: Space): MenuItem[] {
-    return [
+    const items: MenuItem[] = [
       { label: 'Open', onClick: () => router.push(`/${space.id}`) },
       { label: 'Copy invite link', onClick: () => copyInvite(space.id) },
       'divider',
-      { label: 'Leave team', onClick: () => leaveServer(space.id), danger: true },
     ]
+    // The team's creator (owner) can delete it; everyone else can only leave.
+    if (space.created_by && space.created_by === me) {
+      items.push({ label: 'Delete team', onClick: () => deleteServer(space.id), danger: true })
+    } else {
+      items.push({ label: 'Leave team', onClick: () => leaveServer(space.id), danger: true })
+    }
+    return items
   }
 
   const getRailItemStyle = (active: boolean, isPlus = false): React.CSSProperties => ({
