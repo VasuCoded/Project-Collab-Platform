@@ -165,7 +165,7 @@ export default async function Landing() {
                 </div>
                 <div style={{ fontWeight: 700, fontSize: 13, color: "var(--foreground)", fontFamily: "var(--font-sans)" }}>☑ Design System variables</div>
                 <div style={{ borderTop: "1px solid var(--border)", paddingTop: 8, display: "flex", alignItems: "center", gap: 8 }}>
-                  <div style={{ width: 18, height: 18, borderRadius: "50%", background: "var(--border)" }} />
+                  <div style={{ width: 18, height: 18, borderRadius: "50%", background: "var(--accent)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700, fontFamily: "var(--font-sans)" }}>V</div>
                   <span style={{ fontSize: 11, color: "var(--muted)" }}>Assigned to Vasu</span>
                 </div>
               </div>
