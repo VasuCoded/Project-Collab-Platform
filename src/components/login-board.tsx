@@ -112,7 +112,7 @@ export function LoginBoard() {
       </div>
 
       {live.length > 0 && (
-        <div style={{ position: 'absolute', top: 24, left: 24, zIndex: 6, display: 'flex', alignItems: 'center', gap: 6, background: 'var(--accent-soft)', color: 'var(--accent)', fontSize: 11, fontWeight: 700, fontFamily: 'var(--font-mono)', padding: '3px 8px', borderRadius: 99, border: '1px solid var(--border)' }}>
+        <div style={{ position: 'absolute', top: 24, right: 24, zIndex: 6, display: 'flex', alignItems: 'center', gap: 6, background: 'var(--accent-soft)', color: 'var(--accent)', fontSize: 11, fontWeight: 700, fontFamily: 'var(--font-mono)', padding: '3px 8px', borderRadius: 99, border: '1px solid var(--border)' }}>
           <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)' }} />
           {live.length + 1} here now
         </div>
