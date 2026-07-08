@@ -33,6 +33,9 @@ export function BoardChannel({ channelId, channelName, me, meName }: { channelId
   const lastPointer = useRef(0)
   const spawn = useRef(0)
   const drag = useRef<{ id: string; ox: number; oy: number } | null>(null)
+  const pan = useRef<{ sx: number; sy: number; ox: number; oy: number } | null>(null)
+  const [zoom, setZoom] = useState(1)
+  const zoomRef = useRef(1)
 
   const setAndTrack = useCallback((updater: (prev: Item[]) => Item[]) => {
     setItems((prev) => {
@@ -110,8 +113,8 @@ export function BoardChannel({ channelId, channelName, me, meName }: { channelId
     const off = ((spawn.current++ % 6) - 3) * 18
     const it: Item = {
       id: rid(),
-      x: (el?.scrollLeft ?? 0) + w / 2 - 90 + off,
-      y: (el?.scrollTop ?? 0) + h / 2 - 90 + off,
+      x: ((el?.scrollLeft ?? 0) + w / 2) / zoom - 90 + off,
+      y: ((el?.scrollTop ?? 0) + h / 2) / zoom - 90 + off,
       text: '',
       color: NOTE_COLORS[0],
     }
@@ -137,7 +140,9 @@ export function BoardChannel({ channelId, channelName, me, meName }: { channelId
     const el = boardRef.current
     if (!el) return
     const r = el.getBoundingClientRect()
-    drag.current = { id: it.id, ox: e.clientX - r.left + el.scrollLeft - it.x, oy: e.clientY - r.top + el.scrollTop - it.y }
+    const px = (e.clientX - r.left + el.scrollLeft) / zoom
+    const py = (e.clientY - r.top + el.scrollTop) / zoom
+    drag.current = { id: it.id, ox: px - it.x, oy: py - it.y }
     window.addEventListener('pointermove', onDragMove)
     window.addEventListener('pointerup', onDragUp)
   }
@@ -146,8 +151,8 @@ export function BoardChannel({ channelId, channelName, me, meName }: { channelId
     const el = boardRef.current
     if (!d || !el) return
     const r = el.getBoundingClientRect()
-    const x = e.clientX - r.left + el.scrollLeft - d.ox
-    const y = e.clientY - r.top + el.scrollTop - d.oy
+    const x = (e.clientX - r.left + el.scrollLeft) / zoom - d.ox
+    const y = (e.clientY - r.top + el.scrollTop) / zoom - d.oy
     setAndTrack((prev) => prev.map((p) => (p.id === d.id ? { ...p, x, y } : p)))
   }
   const onDragUp = () => {
@@ -165,17 +170,82 @@ export function BoardChannel({ channelId, channelName, me, meName }: { channelId
     if (now - lastPointer.current < 55) return
     lastPointer.current = now
     const r = el.getBoundingClientRect()
-    chRef.current?.send({ type: 'broadcast', event: 'cursor', payload: { id: me, name: meName, color: myColor, x: e.clientX - r.left + el.scrollLeft, y: e.clientY - r.top + el.scrollTop } })
+    chRef.current?.send({ type: 'broadcast', event: 'cursor', payload: { id: me, name: meName, color: myColor, x: (e.clientX - r.left + el.scrollLeft) / zoom, y: (e.clientY - r.top + el.scrollTop) / zoom } })
   }
 
+  // drag empty canvas to pan (mouse only; touch keeps native scroll)
+  function onPanDown(e: React.PointerEvent) {
+    if (e.pointerType !== 'mouse' || e.button !== 0) return
+    if ((e.target as HTMLElement).closest('[data-note]')) return
+    const el = boardRef.current
+    if (!el) return
+    pan.current = { sx: e.clientX, sy: e.clientY, ox: el.scrollLeft, oy: el.scrollTop }
+    window.addEventListener('pointermove', onPanMove)
+    window.addEventListener('pointerup', onPanUp)
+  }
+  const onPanMove = (e: PointerEvent) => {
+    const p = pan.current, el = boardRef.current
+    if (!p || !el) return
+    el.scrollLeft = p.ox - (e.clientX - p.sx)
+    el.scrollTop = p.oy - (e.clientY - p.sy)
+  }
+  const onPanUp = () => {
+    window.removeEventListener('pointermove', onPanMove)
+    window.removeEventListener('pointerup', onPanUp)
+    pan.current = null
+  }
+
+  // zoom keeping the point under (sx,sy) fixed
+  function zoomAt(factor: number, sx: number, sy: number) {
+    const el = boardRef.current
+    if (!el) return
+    const r = el.getBoundingClientRect()
+    const z = zoomRef.current
+    const nz = Math.min(2.5, Math.max(0.35, z * factor))
+    if (nz === z) return
+    const px = sx - r.left, py = sy - r.top
+    const cx = (el.scrollLeft + px) / z
+    const cy = (el.scrollTop + py) / z
+    zoomRef.current = nz
+    setZoom(nz)
+    requestAnimationFrame(() => { el.scrollLeft = cx * nz - px; el.scrollTop = cy * nz - py })
+  }
+  function zoomButton(factor: number) {
+    const el = boardRef.current
+    if (!el) return
+    const r = el.getBoundingClientRect()
+    zoomAt(factor, r.left + r.width / 2, r.top + r.height / 2)
+  }
+  function resetZoom() {
+    if (zoomRef.current !== 1) zoomButton(1 / zoomRef.current)
+  }
+
+  useEffect(() => {
+    const el = boardRef.current
+    if (!el) return
+    const onWheel = (e: WheelEvent) => {
+      if (!(e.ctrlKey || e.metaKey)) return
+      e.preventDefault()
+      zoomAt(e.deltaY < 0 ? 1.1 : 1 / 1.1, e.clientX, e.clientY)
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [])
+
   const remoteCursors = Object.values(cursors)
+  const zoomBtn: React.CSSProperties = { width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', background: 'transparent', color: 'var(--foreground)', cursor: 'pointer', borderRadius: 6, fontSize: 15, lineHeight: 1, padding: 0 }
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', minWidth: 0, background: 'var(--background)', fontFamily: 'var(--font-sans)', transition: 'background-color 0.15s ease' }}>
       <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12 }}>
         <span style={{ fontWeight: 700, color: 'var(--foreground)' }}>▢ {channelName}</span>
         <span style={{ fontSize: 12, color: 'var(--muted)' }}>{here} here · live</span>
-        <button onClick={addNote} title="Add a sticky note" style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6, background: '#f4edd6', color: '#3a3324', border: '1px solid #e4d9b0', borderRadius: 8, padding: '5px 12px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 2, border: '1px solid var(--border)', borderRadius: 8, padding: 2, background: 'var(--card)' }}>
+          <button onClick={() => zoomButton(1 / 1.2)} title="Zoom out" style={zoomBtn}>−</button>
+          <button onClick={resetZoom} title="Reset zoom" style={{ ...zoomBtn, width: 'auto', minWidth: 44, padding: '0 6px', fontSize: 11, fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums', color: 'var(--muted)' }}>{Math.round(zoom * 100)}%</button>
+          <button onClick={() => zoomButton(1.2)} title="Zoom in" style={zoomBtn}>+</button>
+        </div>
+        <button onClick={addNote} title="Add a sticky note" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#f4edd6', color: '#3a3324', border: '1px solid #e4d9b0', borderRadius: 8, padding: '5px 12px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
           + Sticky note
         </button>
       </div>
@@ -183,16 +253,27 @@ export function BoardChannel({ channelId, channelName, me, meName }: { channelId
       <div
         ref={boardRef}
         onPointerMove={onBoardPointerMove}
+        onPointerDown={onPanDown}
         style={{
           flex: 1,
           minHeight: 0,
           position: 'relative',
           overflow: 'auto',
-          backgroundImage: 'linear-gradient(to right, var(--border-soft) 1px, transparent 1px), linear-gradient(to bottom, var(--border-soft) 1px, transparent 1px)',
-          backgroundSize: '28px 28px',
+          touchAction: 'pan-x pan-y',
         }}
       >
-        <div style={{ position: 'relative', width: 2400, height: 1600 }}>
+        <div style={{ position: 'relative', width: 2400 * zoom, height: 1600 * zoom }}>
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: 2400,
+            height: 1600,
+            transform: `scale(${zoom})`,
+            transformOrigin: '0 0',
+            backgroundImage: 'linear-gradient(to right, var(--border-soft) 1px, transparent 1px), linear-gradient(to bottom, var(--border-soft) 1px, transparent 1px)',
+            backgroundSize: '28px 28px',
+          }}>
           {items.length === 0 && (
             <div style={{ position: 'absolute', top: 60, left: 40, color: 'var(--faint)', fontSize: 14, fontFamily: 'var(--font-mono)' }}>
               Empty board. Hit + Sticky note to drop your first one.
@@ -202,6 +283,7 @@ export function BoardChannel({ channelId, channelName, me, meName }: { channelId
           {items.map((it) => (
             <div
               key={it.id}
+              data-note
               onPointerDown={(e) => onNotePointerDown(e, it)}
               style={{ position: 'absolute', left: it.x, top: it.y, width: 180, minHeight: 150, background: it.color, borderRadius: 4, boxShadow: '0 8px 22px rgba(0,0,0,0.14)', cursor: 'grab', padding: 12, display: 'flex', flexDirection: 'column', color: '#3a3324' }}
             >
@@ -228,6 +310,7 @@ export function BoardChannel({ channelId, channelName, me, meName }: { channelId
               <span style={{ position: 'absolute', left: 13, top: 14, background: c.color, color: '#fff', fontSize: 11, fontWeight: 700, padding: '1px 6px', borderRadius: 5, whiteSpace: 'nowrap' }}>{c.name}</span>
             </div>
           ))}
+          </div>
         </div>
       </div>
     </div>
