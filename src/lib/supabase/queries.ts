@@ -5,12 +5,23 @@ import { createClient } from "./server";
 // space layout, and the channel page share one round-trip each instead of
 // firing the same Supabase query three times on every navigation.
 
-export const getCurrentUser = cache(async () => {
+// getClaims() verifies the JWT locally when the project uses asymmetric signing
+// keys, which avoids an auth-server round-trip on every navigation. It falls back
+// to getUser() (a network call) for legacy HS256 keys or if verification can't
+// happen locally, so this is never slower or less safe than getUser() alone.
+export const getCurrentUser = cache(async (): Promise<{ id: string; email: string | null } | null> => {
   const supabase = await createClient();
+  try {
+    const { data } = await supabase.auth.getClaims();
+    const sub = data?.claims?.sub;
+    if (sub) return { id: sub as string, email: (data!.claims.email as string | undefined) ?? null };
+  } catch {
+    // fall through to getUser()
+  }
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  return user;
+  return user ? { id: user.id, email: user.email ?? null } : null;
 });
 
 export const getProfile = cache(async (userId: string) => {
