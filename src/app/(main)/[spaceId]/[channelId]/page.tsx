@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentUser, getProfile, getMyRole, getSpace, getDmPeers } from "@/lib/supabase/queries";
+import { getCurrentUser, getProfile, getMyRole, getSpace, getDmPeers, getChannelMessages } from "@/lib/supabase/queries";
 import { Chat } from "@/components/chat";
 import { CubicleChannel } from "@/components/cubicle-channel";
 import { Whiteboard } from "@/components/whiteboard";
@@ -23,8 +23,27 @@ export default async function ChannelPage({ params }: { params: Promise<{ spaceI
   ]);
   if (!channel) notFound();
 
-  // text, cubicle, whiteboard, board and todo all need the profile.
-  if ((channel.type === "text" || channel.type === "cubicle" || channel.type === "whiteboard" || channel.type === "board" || channel.type === "todo") && user) {
+  // A text channel needs the profile, the space, and the newest page of messages.
+  // Fetch all three at once and render the messages here, so the first paint has
+  // them instead of Chat fetching once the browser has hydrated.
+  if (channel.type === "text" && user) {
+    const [profile, space, initialMessages] = await Promise.all([
+      getProfile(user.id), // cache hit: shared with the main layout
+      getSpace(spaceId), // cache hit: shared with the space layout
+      getChannelMessages(channel.id),
+    ]);
+    const meName = profile?.display_name ?? "You";
+    // key: a channel switch must remount Chat so it picks up the new server page.
+    // In a DM, title the chat with the other person (no "#") rather than "# direct".
+    if (space?.type === "dm") {
+      const peers = await getDmPeers([spaceId], user.id);
+      return <Chat key={channel.id} channelId={channel.id} channelName={peers.get(spaceId)?.name ?? "Direct message"} me={user.id} meName={meName} dm initialMessages={initialMessages} />;
+    }
+    return <Chat key={channel.id} channelId={channel.id} channelName={channel.name} me={user.id} meName={meName} initialMessages={initialMessages} />;
+  }
+
+  // cubicle, whiteboard, board and todo all need the profile.
+  if ((channel.type === "cubicle" || channel.type === "whiteboard" || channel.type === "board" || channel.type === "todo") && user) {
     const profile = await getProfile(user.id); // cache hit: shared with the main layout
     const meName = profile?.display_name ?? "You";
     if (channel.type === "whiteboard") {
@@ -45,13 +64,6 @@ export default async function ChannelPage({ params }: { params: Promise<{ spaceI
       }
       return <CubicleChannel channelId={channel.id} channelName={channel.name} ownerName={ownerName} isOwner={isOwner} me={user.id} meName={meName} />;
     }
-    // In a DM, title the chat with the other person (no "#") rather than "# direct".
-    const space = await getSpace(spaceId); // cache hit: shared with the space layout
-    if (space?.type === "dm") {
-      const peers = await getDmPeers([spaceId], user.id);
-      return <Chat channelId={channel.id} channelName={peers.get(spaceId)?.name ?? "Direct message"} me={user.id} meName={meName} dm />;
-    }
-    return <Chat channelId={channel.id} channelName={channel.name} me={user.id} meName={meName} />;
   }
 
   if (channel.type === "notes" && user) {

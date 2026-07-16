@@ -25,14 +25,16 @@ function timeOf(iso: string) {
   }
 }
 
-export function Chat({ channelId, channelName, me, meName, dm = false, compact = false }: { channelId: string; channelName: string; me: string; meName: string; dm?: boolean; compact?: boolean }) {
+const PAGE = 50;
+
+export function Chat({ channelId, channelName, me, meName, dm = false, compact = false, initialMessages }: { channelId: string; channelName: string; me: string; meName: string; dm?: boolean; compact?: boolean; initialMessages?: Msg[] }) {
   const supabase = useMemo(() => createClient(), []);
   const ui = useUI();
-  const [messages, setMessages] = useState<Msg[]>([]);
+  const [messages, setMessages] = useState<Msg[]>(initialMessages ?? []);
   const [text, setText] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [sending, setSending] = useState(false);
-  const [hasMore, setHasMore] = useState(false);
+  const [hasMore, setHasMore] = useState((initialMessages?.length ?? 0) === PAGE);
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [here, setHere] = useState(1);
   const [typers, setTypers] = useState<string[]>([]);
@@ -42,7 +44,11 @@ export function Chat({ channelId, channelName, me, meName, dm = false, compact =
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const chRef = useRef<RealtimeChannel | null>(null);
-  const cache = useRef<Map<string, Author>>(new Map());
+  // Seeded from the server page so paging back / realtime inserts don't re-fetch
+  // authors we already have.
+  const cache = useRef<Map<string, Author>>(
+    new Map((initialMessages ?? []).flatMap((m) => (m.author ? ([[m.author_id, m.author]] as [string, Author][]) : []))),
+  );
   const lastTyping = useRef(0);
 
   function scrollDown(smooth = false) {
@@ -52,38 +58,103 @@ export function Chat({ channelId, channelName, me, meName, dm = false, compact =
     });
   }
 
-  // Plain, robust batch fetch — no PostgREST embeds. Resolves authors + reactions separately.
-  const fetchBatch = useCallback(
-    async (beforeIso?: string): Promise<Msg[]> => {
-      let q = supabase.from("messages").select("id, content, image_url, created_at, edited_at, author_id").eq("channel_id", channelId);
-      if (beforeIso) q = q.lt("created_at", beforeIso);
-      const { data: msgs, error } = await q.order("created_at", { ascending: false }).limit(50);
-      if (error) {
-        console.error("[chat] messages fetch failed", error.message);
-        return [];
-      }
-      const rows = ((msgs ?? []) as { id: string; content: string; image_url: string | null; created_at: string; edited_at: string | null; author_id: string }[]).slice().reverse();
-      if (rows.length === 0) return [];
+  type Row = Omit<Msg, "author">;
 
+  const withAuthors = useCallback(
+    async (rows: Row[]): Promise<Msg[]> => {
       const needAuthors = [...new Set(rows.map((r) => r.author_id))].filter((id) => !cache.current.has(id));
       if (needAuthors.length) {
         const { data: profs } = await supabase.from("profiles").select("id, display_name, avatar_url").in("id", needAuthors);
         (profs ?? []).forEach((p) => cache.current.set(p.id, { display_name: p.display_name, avatar_url: p.avatar_url }));
       }
-
       return rows.map((r) => ({ ...r, author: cache.current.get(r.author_id) ?? null }));
     },
-    [channelId, supabase],
+    [supabase],
   );
 
+  // Plain, robust batch fetch — no PostgREST embeds. Resolves authors + reactions separately.
+  const fetchBatch = useCallback(
+    async (beforeIso?: string): Promise<Msg[]> => {
+      let q = supabase.from("messages").select("id, content, image_url, created_at, edited_at, author_id").eq("channel_id", channelId);
+      if (beforeIso) q = q.lt("created_at", beforeIso);
+      const { data: msgs, error } = await q.order("created_at", { ascending: false }).limit(PAGE);
+      if (error) {
+        console.error("[chat] messages fetch failed", error.message);
+        return [];
+      }
+      const rows = ((msgs ?? []) as Row[]).slice().reverse();
+      if (rows.length === 0) return [];
+      return withAuthors(rows);
+    },
+    [channelId, supabase, withAuthors],
+  );
+
+  // Newest message we're currently showing — drives the catch-up below without
+  // making the realtime effect depend on `messages` (which would resubscribe on
+  // every single message).
+  const newestAt = useRef<string | null>(initialMessages?.length ? initialMessages[initialMessages.length - 1].created_at : null);
   useEffect(() => {
+    const last = messages[messages.length - 1];
+    if (last) newestAt.current = last.created_at;
+  }, [messages]);
+
+  // Close the window between when the server rendered this page and when our
+  // realtime subscription goes live: anything posted in between is in neither.
+  // The router cache (staleTimes.dynamic) can widen that window to ~30s by
+  // replaying an older payload, so this isn't just a hydration-speed race.
+  // Usually matches zero rows, and never blocks the first paint.
+  const catchUp = useCallback(async () => {
+    const since = newestAt.current;
+    if (!since) return;
+    const { data, error } = await supabase
+      .from("messages")
+      .select("id, content, image_url, created_at, edited_at, author_id")
+      .eq("channel_id", channelId)
+      .gt("created_at", since)
+      .order("created_at", { ascending: true })
+      .limit(PAGE);
+    if (error || !data?.length) return;
+
+    // A full page of misses means the gap may be bigger than we can see from
+    // here; take the newest page instead of stitching a partial one.
+    if (data.length === PAGE) {
+      const fresh = await fetchBatch();
+      if (fresh.length) {
+        setMessages(fresh);
+        setHasMore(fresh.length === PAGE);
+        scrollDown();
+      }
+      return;
+    }
+
+    const merged = await withAuthors(data as Row[]);
+    setMessages((prev) => {
+      const seen = new Set(prev.map((m) => m.id));
+      const add = merged.filter((m) => !seen.has(m.id));
+      return add.length ? [...prev, ...add] : prev;
+    });
+    scrollDown();
+  }, [channelId, supabase, withAuthors, fetchBatch]);
+
+  // The [channelId] route hands us the newest page already rendered, so there's
+  // nothing to fetch on mount — just pin to the bottom. Callers that mount Chat
+  // from a client component (the cubicle wall) pass nothing and still fetch here.
+  // The route keys Chat by channel id, so a channel switch remounts with fresh
+  // server data rather than leaving this seed stale.
+  const seeded = useRef(initialMessages !== undefined);
+
+  useEffect(() => {
+    if (seeded.current) {
+      scrollDown();
+      return;
+    }
     let active = true;
     setMessages([]);
     (async () => {
       const batch = await fetchBatch();
       if (!active) return;
       setMessages(batch);
-      setHasMore(batch.length === 50);
+      setHasMore(batch.length === PAGE);
       scrollDown();
     })();
     return () => {
@@ -139,14 +210,18 @@ export function Chat({ channelId, channelName, me, meName, dm = false, compact =
     });
 
     ch.subscribe((status) => {
-      if (status === "SUBSCRIBED") ch.track({ at: Date.now() });
+      if (status !== "SUBSCRIBED") return;
+      ch.track({ at: Date.now() });
+      // Only safe once subscribed: from here on, new messages stream in, so this
+      // fills the gap behind us without leaving a new one.
+      void catchUp();
     });
 
     return () => {
       supabase.removeChannel(ch);
       chRef.current = null;
     };
-  }, [channelId, me, supabase, markRead]);
+  }, [channelId, me, supabase, markRead, catchUp]);
 
   async function loadOlder() {
     if (loadingOlder || messages.length === 0) return;
@@ -155,7 +230,7 @@ export function Chat({ channelId, channelName, me, meName, dm = false, compact =
     const prevH = el?.scrollHeight ?? 0;
     const older = await fetchBatch(messages[0].created_at);
     setMessages((prev) => [...older, ...prev]);
-    setHasMore(older.length === 50);
+    setHasMore(older.length === PAGE);
     setLoadingOlder(false);
     requestAnimationFrame(() => {
       if (el) el.scrollTop = el.scrollHeight - prevH;

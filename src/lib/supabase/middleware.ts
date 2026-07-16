@@ -23,9 +23,25 @@ export async function updateSession(request: NextRequest) {
     },
   )
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  // getClaims() verifies the JWT locally under asymmetric signing keys, so the
+  // common "already signed in" case costs no auth-server round-trip. It falls
+  // back to a network call only for legacy HS256 keys, so this is never slower
+  // or less safe than getUser(). Matters here more than anywhere else: this runs
+  // on every request before rendering starts.
+  let user: { id: string } | null = null
+  try {
+    const { data } = await supabase.auth.getClaims()
+    const sub = data?.claims?.sub
+    if (sub) user = { id: sub as string }
+  } catch {
+    // fall through to getUser()
+  }
+  if (!user) {
+    const {
+      data: { user: fetched },
+    } = await supabase.auth.getUser()
+    user = fetched ? { id: fetched.id } : null
+  }
 
   const path = request.nextUrl.pathname
   const code = request.nextUrl.searchParams.get('code')

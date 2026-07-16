@@ -95,6 +95,42 @@ export async function getDmPeers(dmSpaceIds: string[], meId: string) {
   return map;
 }
 
+export type ChatAuthor = { display_name: string | null; avatar_url: string | null };
+export type ChatMessage = {
+  id: string;
+  content: string;
+  image_url: string | null;
+  created_at: string;
+  edited_at: string | null;
+  author_id: string;
+  author: ChatAuthor | null;
+};
+export const MESSAGE_PAGE = 50;
+
+// The newest page of a channel, authors already resolved. Rendering this on the
+// server lets the first paint include real messages: the client used to ship an
+// empty <Chat>, hydrate, then fire two sequential round-trips (messages, then
+// profiles) before anything appeared. Chat still re-subscribes on mount for
+// realtime, and still fetches on its own when paging back through history.
+export const getChannelMessages = cache(async (channelId: string): Promise<ChatMessage[]> => {
+  const supabase = await createClient();
+  const { data: msgs } = await supabase
+    .from("messages")
+    .select("id, content, image_url, created_at, edited_at, author_id")
+    .eq("channel_id", channelId)
+    .order("created_at", { ascending: false })
+    .limit(MESSAGE_PAGE);
+
+  const rows = ((msgs ?? []) as Omit<ChatMessage, "author">[]).slice().reverse();
+  if (rows.length === 0) return [];
+
+  const authorIds = [...new Set(rows.map((r) => r.author_id))];
+  const { data: profs } = await supabase.from("profiles").select("id, display_name, avatar_url").in("id", authorIds);
+  const byId = new Map((profs ?? []).map((p) => [p.id, { display_name: p.display_name, avatar_url: p.avatar_url }]));
+
+  return rows.map((r) => ({ ...r, author: byId.get(r.author_id) ?? null }));
+});
+
 export type SpaceMember = {
   user_id: string;
   role: string;
