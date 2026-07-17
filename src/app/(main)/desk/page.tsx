@@ -30,10 +30,18 @@ export default async function DeskPage() {
     memberCount.set(m.space_id, (memberCount.get(m.space_id) ?? 0) + 1)
   }
 
-  // open-task counts per space + the tasks that are on me
+  // open-task counts per space + the tasks that are on me. We also tally every
+  // task assigned to me (done or not) so the desk can show a real completion rate
+  // — the "waiting" list only holds open tasks, so it can't be counted for that.
   const openTaskCount = new Map<string, number>()
   const waiting: WaitingTask[] = []
+  let myDone = 0
+  let myTotal = 0
   for (const t of (tasks ?? []) as Task[]) {
+    if (t.owner_id === user.id) {
+      myTotal++
+      if (t.status === 'done') myDone++
+    }
     if (t.status !== 'done') {
       openTaskCount.set(t.space_id, (openTaskCount.get(t.space_id) ?? 0) + 1)
       if (t.owner_id === user.id) {
@@ -73,5 +81,5 @@ export default async function DeskPage() {
     .sort((a, b) => (b.lastAt ?? '').localeCompare(a.lastAt ?? ''))
     .map((d) => ({ id: d.id, name: d.name, avatar: d.avatar, unread: d.unread }))
 
-  return <Desk displayName={profile?.display_name ?? 'there'} teams={teams} waiting={waiting} dms={dms} />
+  return <Desk displayName={profile?.display_name ?? 'there'} teams={teams} waiting={waiting} dms={dms} completed={myDone} assigned={myTotal} />
 }

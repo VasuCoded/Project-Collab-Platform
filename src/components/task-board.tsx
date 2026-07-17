@@ -54,6 +54,21 @@ export function TaskBoard({ spaceId, channelId, channelName, me }: { spaceId: st
   const [due, setDue] = useState<string>("");
   const [adding, setAdding] = useState(false);
 
+  // Drag-and-drop between columns. dragId is the card in flight; dropCol is the
+  // column currently under the pointer, so we can highlight it as a drop target.
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [dropCol, setDropCol] = useState<Status | null>(null);
+
+  function dropOnColumn(status: Status) {
+    const id = dragId;
+    setDropCol(null);
+    setDragId(null);
+    if (!id) return;
+    const task = tasks.find((t) => t.id === id);
+    if (!task || task.status === status) return;
+    patch(id, { status });
+  }
+
   const memberById = useMemo(() => new Map(members.map((m) => [m.id, m])), [members]);
 
   const load = useCallback(async () => {
@@ -149,9 +164,21 @@ export function TaskBoard({ spaceId, channelId, channelName, me }: { spaceId: st
 
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", height: "100%", minWidth: 0, background: "var(--background)", fontFamily: "var(--font-sans)", transition: "background-color 0.15s ease" }}>
-      <div style={{ padding: "12px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "baseline", gap: 12 }}>
-        <span style={{ fontWeight: 700, color: "var(--foreground)" }}>☑ {channelName}</span>
-        <span style={{ fontSize: 12, color: "var(--muted)" }}>{tasks.filter((t) => t.status !== "done").length} open</span>
+      <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 12 }}>
+        <span style={{ display: "flex", alignItems: "center", color: "var(--accent)" }} aria-hidden>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="9 11 12 14 22 4" />
+            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+          </svg>
+        </span>
+        <span style={{ fontFamily: "var(--display-font)", fontSize: 18, fontWeight: 800, color: "var(--foreground)" }}>{channelName}</span>
+        <span style={{ fontSize: 12, color: "var(--muted)", fontFamily: "var(--font-mono)" }}>{tasks.filter((t) => t.status !== "done").length} open</span>
+        <span style={{ marginLeft: "auto", fontSize: 10, color: "var(--faint)", fontFamily: "var(--font-mono)", textTransform: "uppercase", letterSpacing: "0.05em", display: "flex", alignItems: "center", gap: 6 }} className="tb-draghint">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <polyline points="5 9 2 12 5 15" /><polyline points="9 5 12 2 15 5" /><polyline points="15 19 12 22 9 19" /><polyline points="19 9 22 12 19 15" /><line x1="2" y1="12" x2="22" y2="12" /><line x1="12" y1="2" x2="12" y2="22" />
+          </svg>
+          drag to move
+        </span>
       </div>
 
       <form onSubmit={addTask} style={{ display: "flex", gap: 8, padding: "12px 20px", borderBottom: "1px solid var(--border)", flexWrap: "wrap" }}>
@@ -178,21 +205,73 @@ export function TaskBoard({ spaceId, channelId, channelName, me }: { spaceId: st
       <div style={{ flex: 1, overflow: "auto", display: "flex", gap: 14, padding: 16, alignItems: "flex-start" }}>
         {COLUMNS.map((col) => {
           const items = byStatus(col.key);
+          const isTarget = dropCol === col.key && dragId !== null;
+          const canDrop = isTarget && tasks.find((t) => t.id === dragId)?.status !== col.key;
           return (
-            <div key={col.key} style={{ flex: "1 1 0", minWidth: 240, background: "var(--sidebar)", border: "1px solid var(--border)", borderRadius: 12, display: "flex", flexDirection: "column", maxHeight: "100%", boxShadow: "0 4px 12px var(--shadow)" }}>
+            <div
+              key={col.key}
+              onDragOver={(e) => { if (dragId) { e.preventDefault(); if (dropCol !== col.key) setDropCol(col.key); } }}
+              onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDropCol((c) => (c === col.key ? null : c)); }}
+              onDrop={(e) => { e.preventDefault(); dropOnColumn(col.key); }}
+              style={{
+                flex: "1 1 0",
+                minWidth: 240,
+                background: canDrop ? "var(--accent-soft)" : "var(--sidebar)",
+                border: `1px solid ${canDrop ? "var(--accent)" : "var(--border)"}`,
+                borderRadius: 12,
+                display: "flex",
+                flexDirection: "column",
+                maxHeight: "100%",
+                boxShadow: canDrop ? "0 6px 18px var(--shadow-lg)" : "0 4px 12px var(--shadow)",
+                transition: "background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease",
+              }}
+            >
               <div style={{ padding: "12px 14px", display: "flex", alignItems: "center", gap: 8, borderBottom: "1px solid var(--border)" }}>
                 <span style={{ width: 8, height: 8, borderRadius: "50%", background: col.accent }} />
                 <span style={{ color: "var(--foreground)", fontSize: 13, fontWeight: 700 }}>{col.label}</span>
-                <span style={{ color: "var(--muted)", fontSize: 12 }}>{items.length}</span>
+                <span style={{ color: "var(--muted)", fontSize: 12, fontFamily: "var(--font-mono)", background: "var(--border-soft)", borderRadius: 99, padding: "0 7px", minWidth: 20, textAlign: "center" }}>{items.length}</span>
               </div>
               <div style={{ padding: 10, display: "flex", flexDirection: "column", gap: 8, overflowY: "auto" }}>
                 {loading && <div style={{ color: "var(--faint)", fontSize: 13, padding: 8 }}>loading…</div>}
-                {!loading && items.length === 0 && <div style={{ color: "var(--faint)", fontSize: 13, padding: "10px 8px" }}>—</div>}
+                {!loading && items.length === 0 && (
+                  <div style={{
+                    color: canDrop ? "var(--accent)" : "var(--faint)",
+                    fontSize: 12,
+                    fontFamily: "var(--font-mono)",
+                    padding: "18px 8px",
+                    textAlign: "center",
+                    border: `1px dashed ${canDrop ? "var(--accent)" : "var(--border)"}`,
+                    borderRadius: 8,
+                    transition: "color 0.15s ease, border-color 0.15s ease",
+                  }}>
+                    {dragId ? "drop here" : "—"}
+                  </div>
+                )}
                 {items.map((t) => {
                   const owner = t.owner_id ? memberById.get(t.owner_id) : null;
                   const d = dueLabel(t.due_at);
+                  const dragging = dragId === t.id;
                   return (
-                    <div key={t.id} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 10, padding: "10px 11px", display: "flex", flexDirection: "column", gap: 8, boxShadow: "0 2px 4px var(--shadow)", transition: "transform 0.15s ease" }} onMouseEnter={(e) => e.currentTarget.style.transform = "translateY(-1px)"} onMouseLeave={(e) => e.currentTarget.style.transform = "translateY(0px)"}>
+                    <div
+                      key={t.id}
+                      draggable
+                      onDragStart={(e) => { setDragId(t.id); e.dataTransfer.effectAllowed = "move"; }}
+                      onDragEnd={() => { setDragId(null); setDropCol(null); }}
+                      className="tb-card"
+                      style={{
+                        background: "var(--card)",
+                        border: "1px solid var(--border)",
+                        borderRadius: 10,
+                        padding: "10px 11px",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 8,
+                        boxShadow: dragging ? "0 10px 24px var(--shadow-lg)" : "0 2px 4px var(--shadow)",
+                        transition: "box-shadow 0.15s ease, opacity 0.15s ease, transform 0.15s ease, border-color 0.15s ease",
+                        cursor: "grab",
+                        opacity: dragging ? 0.5 : 1,
+                      }}
+                    >
                       <div style={{ color: t.status === "done" ? "var(--faint)" : "var(--foreground)", fontSize: 14, lineHeight: 1.35, textDecoration: t.status === "done" ? "line-through" : "none", wordBreak: "break-word" }}>{t.title}</div>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                         {owner ? (
@@ -209,7 +288,17 @@ export function TaskBoard({ spaceId, channelId, channelName, me }: { spaceId: st
                             claim
                           </button>
                         )}
-                        {d && <span style={{ fontSize: 11, fontWeight: 600, color: d.overdue && t.status !== "done" ? "var(--danger)" : "var(--muted)" }}>{d.text}</span>}
+                        {d && (
+                          <span style={{
+                            fontSize: 10,
+                            fontFamily: "var(--font-mono)",
+                            fontWeight: 700,
+                            padding: "2px 6px",
+                            borderRadius: 4,
+                            background: d.overdue && t.status !== "done" ? "var(--danger-soft)" : "var(--border-soft)",
+                            color: d.overdue && t.status !== "done" ? "var(--danger)" : "var(--muted)",
+                          }}>{d.text}</span>
+                        )}
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
                         {PREV[t.status] && (
@@ -234,6 +323,16 @@ export function TaskBoard({ spaceId, channelId, channelName, me }: { spaceId: st
           );
         })}
       </div>
+
+      <style>{`
+        .tb-card:hover { transform: translateY(-2px); border-color: var(--accent); }
+        .tb-card:active { cursor: grabbing; }
+        @media (max-width: 720px) { .tb-draghint { display: none !important; } }
+        @media (prefers-reduced-motion: reduce) {
+          .tb-card { transition: none !important; }
+          .tb-card:hover { transform: none; }
+        }
+      `}</style>
     </div>
   );
 }

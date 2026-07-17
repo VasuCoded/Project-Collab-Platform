@@ -103,7 +103,14 @@ export function NotesChannel({ channelId, channelName, me }: { channelId: string
         gap: 16
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--accent)", fontWeight: 700 }}>[≡]</span>
+          <span style={{ display: "flex", alignItems: "center", color: "var(--accent)" }} aria-hidden>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="16" y1="13" x2="8" y2="13" />
+              <line x1="16" y1="17" x2="8" y2="17" />
+            </svg>
+          </span>
           <span style={{
             fontFamily: "var(--display-font)",
             fontSize: 18,
@@ -215,12 +222,6 @@ export function NotesChannel({ channelId, channelName, me }: { channelId: string
         </div>
       </div>
 
-      <style>{`
-        @keyframes pulse-fast {
-          0%, 100% { opacity: 0.4; transform: scale(1); }
-          50% { opacity: 1; transform: scale(1.2); }
-        }
-      `}</style>
     </div>
   );
 }

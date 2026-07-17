@@ -147,7 +147,12 @@ export function RemindersChannel({ channelId, channelName, me }: { channelId: st
           gap: 16
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--accent)", fontWeight: 700 }}>[⏰]</span>
+            <span style={{ display: "flex", alignItems: "center", color: "var(--accent)" }} aria-hidden>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <polyline points="12 6 12 12 16 14" />
+              </svg>
+            </span>
             <span style={{
               fontFamily: "var(--display-font)",
               fontSize: 18,

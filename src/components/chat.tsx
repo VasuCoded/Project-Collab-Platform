@@ -749,12 +749,6 @@ export function Chat({ channelId, channelName, me, meName, dm = false, compact =
         </button>
       </form>
 
-      <style>{`
-        @keyframes pulse-fast {
-          0%, 100% { opacity: 0.4; transform: scale(1); }
-          50% { opacity: 1; transform: scale(1.2); }
-        }
-      `}</style>
     </div>
   );
 }

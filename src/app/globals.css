@@ -132,11 +132,31 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* Shared "live" presence dots. Defined once here so every channel view gets the
+   animation — the reminders view used to reference pulse-fast without defining
+   it, so its dot sat still. */
+@keyframes pulse {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+@keyframes pulse-fast {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .cube { animation: none; opacity: 0.85; }
   .cur { animation: none; }
   .loader-bar { animation: none; width: 60%; }
   .login-board-enter { animation: none; }
+
+  /* Blanket safety net for everything not handled above: near-instant, no motion. */
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 .landing-hero-badge {

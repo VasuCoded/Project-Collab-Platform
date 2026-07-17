@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, useState, useCallback } from 'react'
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react'
 
 type ToastType = 'success' | 'error' | 'info'
 
@@ -8,6 +8,7 @@ interface Toast {
   id: string
   message: string
   type: ToastType
+  leaving?: boolean
 }
 
 interface AlertConfig {
@@ -53,13 +54,18 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
   const [promptConfig, setPromptConfig] = useState<PromptConfig | null>(null)
   const [promptValue, setPromptValue] = useState('')
 
+  // Two-phase removal so toasts can animate out: mark `leaving`, then drop it a
+  // beat later once the exit animation has played.
+  const dismissToast = useCallback((id: string) => {
+    setToasts((prev) => prev.map((t) => (t.id === id ? { ...t, leaving: true } : t)))
+    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 200)
+  }, [])
+
   const toast = useCallback((message: string, type: ToastType = 'info') => {
     const id = Math.random().toString(36).substring(2, 9)
     setToasts((prev) => [...prev, { id, message, type }])
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id))
-    }, 4000)
-  }, [])
+    setTimeout(() => dismissToast(id), 3800)
+  }, [dismissToast])
 
   const alert = useCallback((message: string, title?: string) => {
     return new Promise<void>((resolve) => {
@@ -101,6 +107,21 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  // Escape dismisses whichever modal is open, resolving it the same way its
+  // Cancel/Dismiss button would. Matches the context menu's behaviour.
+  useEffect(() => {
+    if (!alertConfig && !confirmConfig && !promptConfig) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      if (alertConfig) handleAlertClose()
+      else if (confirmConfig) handleConfirmClose(false)
+      else if (promptConfig) handlePromptClose(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [alertConfig, confirmConfig, promptConfig])
+
   return (
     <UIContext.Provider value={{ toast, alert, confirm, prompt }}>
       {children}
@@ -141,6 +162,8 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
           return (
             <div
               key={t.id}
+              onClick={() => dismissToast(t.id)}
+              title="Dismiss"
               style={{
                 background: bg,
                 border: `1px solid ${border}`,
@@ -156,7 +179,10 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
                 minWidth: 260,
                 maxWidth: 400,
                 pointerEvents: 'auto',
-                animation: 'toast-in 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                cursor: 'pointer',
+                animation: t.leaving
+                  ? 'toast-out 0.2s cubic-bezier(0.4, 0, 1, 1) forwards'
+                  : 'toast-in 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards',
               }}
             >
               <span style={{
@@ -173,8 +199,8 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
       </div>
 
       {alertConfig && (
-        <div style={overlayStyle}>
-          <div style={modalStyle}>
+        <div style={overlayStyle} onClick={handleAlertClose}>
+          <div style={modalStyle} onClick={(e) => e.stopPropagation()}>
             <div style={modalHeaderStyle}>
               <span style={monoIndicatorStyle}>[ALERT]</span>
               {alertConfig.title && <h3 style={titleStyle}>{alertConfig.title}</h3>}
@@ -190,8 +216,8 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
       )}
 
       {confirmConfig && (
-        <div style={overlayStyle}>
-          <div style={modalStyle}>
+        <div style={overlayStyle} onClick={() => handleConfirmClose(false)}>
+          <div style={modalStyle} onClick={(e) => e.stopPropagation()}>
             <div style={modalHeaderStyle}>
               <span style={monoIndicatorStyle}>[CONFIRM]</span>
               {confirmConfig.title && <h3 style={titleStyle}>{confirmConfig.title}</h3>}
@@ -210,8 +236,8 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
       )}
 
       {promptConfig && (
-        <div style={overlayStyle}>
-          <div style={modalStyle}>
+        <div style={overlayStyle} onClick={() => handlePromptClose(false)}>
+          <div style={modalStyle} onClick={(e) => e.stopPropagation()}>
             <div style={modalHeaderStyle}>
               <span style={monoIndicatorStyle}>[INPUT]</span>
               {promptConfig.title && <h3 style={titleStyle}>{promptConfig.title}</h3>}
@@ -242,6 +268,10 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
         @keyframes toast-in {
           from { transform: translateY(-12px) scale(0.95); opacity: 0; }
           to { transform: translateY(0) scale(1); opacity: 1; }
+        }
+        @keyframes toast-out {
+          from { transform: translateY(0) scale(1); opacity: 1; }
+          to { transform: translateX(16px) scale(0.96); opacity: 0; }
         }
       `}</style>
     </UIContext.Provider>

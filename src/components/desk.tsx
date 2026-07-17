@@ -38,11 +38,15 @@ export function Desk({
   teams,
   waiting,
   dms,
+  completed,
+  assigned,
 }: {
   displayName: string
   teams: Team[]
   waiting: WaitingTask[]
   dms: DeskDm[]
+  completed: number
+  assigned: number
 }) {
   const router = useRouter()
   const ui = useUI()
@@ -60,6 +64,7 @@ export function Desk({
   const blockedCount = waiting.length
   const totalUnread = teams.reduce((n, t) => n + t.unread, 0) + dms.reduce((n, d) => n + d.unread, 0)
   const shownDms = dmFilter === 'unread' ? dms.filter((d) => d.unread > 0) : dms
+  const actionRate = assigned > 0 ? Math.round((completed / assigned) * 100) : 100
 
   async function onCreate() {
     const name = await ui.prompt('Enter new team name:', '', 'Create Team')
@@ -187,14 +192,15 @@ export function Desk({
               Action Rate
             </div>
             <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--foreground)', marginTop: 4, display: 'flex', alignItems: 'baseline', gap: 6 }}>
-              {waiting.filter(t => t.status === 'done').length} <span style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 400 }}>of {waiting.length} completed</span>
+              {completed} <span style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 400 }}>of {assigned} {assigned === 1 ? 'task' : 'tasks'} done</span>
             </div>
             <div style={{ height: 3, background: 'var(--border-soft)', borderRadius: 2, marginTop: 8, overflow: 'hidden' }}>
               <div style={{
                 height: '100%',
                 background: 'var(--accent)',
-                width: waiting.length > 0 ? `${(waiting.filter(t => t.status === 'done').length / waiting.length) * 100}%` : '100%',
+                width: `${actionRate}%`,
                 borderRadius: 2,
+                transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
               }} />
             </div>
           </div>
@@ -721,12 +727,6 @@ export function Desk({
         </div>
       </div>
 
-      <style>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 0.4; transform: scale(1); }
-          50% { opacity: 1; transform: scale(1.1); }
-        }
-      `}</style>
     </div>
   )
 }
