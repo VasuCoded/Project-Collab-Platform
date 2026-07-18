@@ -65,7 +65,7 @@ export function Whiteboard({ channelId, channelName, me, meName }: { channelId: 
     return () => observer.disconnect();
   }, []);
 
-  const initialElements = useRef<readonly El[]>([]);
+  const [initialElements, setInitialElements] = useState<readonly El[]>([]);
   const apiRef = useRef<ExcalidrawApi | null>(null);
   const chRef = useRef<RealtimeChannel | null>(null);
   const collaborators = useRef<Map<string, Collaborator>>(new Map());
@@ -82,7 +82,7 @@ export function Whiteboard({ channelId, channelName, me, meName }: { channelId: 
     (async () => {
       const { data } = await supabase.from("whiteboards").select("elements").eq("channel_id", channelId).maybeSingle();
       if (!active) return;
-      initialElements.current = (data?.elements as El[] | undefined) ?? [];
+      setInitialElements((data?.elements as El[] | undefined) ?? []);
       setReady(true);
     })();
     return () => {
@@ -229,7 +229,7 @@ export function Whiteboard({ channelId, channelName, me, meName }: { channelId: 
             excalidrawAPI={(api) => {
               apiRef.current = api;
             }}
-            initialData={{ elements: initialElements.current, scrollToContent: true, appState: { currentItemStrokeColor: "#0E5C46", currentItemBackgroundColor: "transparent" } }}
+            initialData={{ elements: initialElements, scrollToContent: true, appState: { currentItemStrokeColor: "#0E5C46", currentItemBackgroundColor: "transparent" } }}
             onChange={onChange}
             onPointerUpdate={onPointerUpdate}
             isCollaborating
